@@ -245,6 +245,16 @@ if [[ "$INCLUDE_CICD" =~ ^[Yy]$ ]]; then
     "{{API_DIR}}"       "$API_DIR"
 fi
 
+# ── Env file ─────────────────────────────────────────────────────────────────
+
+if [[ "$TEMPLATE" == "vite" ]]; then
+  cp "$TARGET_DIR/.env.example" "$TARGET_DIR/.env"
+  info "Created .env from .env.example"
+else
+  cp "$TARGET_DIR/.env.local.example" "$TARGET_DIR/.env.local"
+  info "Created .env.local from .env.local.example"
+fi
+
 # ── Git init ───────────────────────────────────────────────────────────────────
 
 info "Initialising git repository"
@@ -262,7 +272,7 @@ echo -e "${BOLD}Next steps:${RESET}"
 
 if [[ "$TEMPLATE" == "vite" ]]; then
   echo "  1. cd ${REL_DIR}"
-  echo "  2. Copy .env.example → .env and fill in secrets"
+  echo "  2. Fill in secrets in .env"
   echo "  3. Create MySQL databases:"
   echo "       CREATE DATABASE \`${PROJECT_NAME}\`;"
   echo "       CREATE DATABASE \`${PROJECT_NAME}_shadow\`;"
@@ -271,7 +281,7 @@ if [[ "$TEMPLATE" == "vite" ]]; then
   echo "  6. pnpm dev:all"
 else
   echo "  1. cd ${REL_DIR}"
-  echo "  2. Copy .env.local.example → .env.local and fill in secrets"
+  echo "  2. Fill in secrets in .env.local"
   if [[ "$DB_PROVIDER" == "mysql" ]]; then
     echo "  3. Create MySQL database:"
     echo "       CREATE DATABASE \`${PROJECT_NAME}\`;"
