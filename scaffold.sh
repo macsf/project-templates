@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATES_DIR="$SCRIPT_DIR/templates"
-WORKFLOWS_DIR="$SCRIPT_DIR/../workflow-templates/templates/fullstack-app"
+WORKFLOWS_DIR="$SCRIPT_DIR/workflow-templates/templates/fullstack-app"
 
 # ── Colors ──────────────────────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -166,10 +166,10 @@ prompt PM2_APP_NAME  "PM2 app name"                   "$PROJECT_NAME"
 # CI/CD workflow
 echo ""
 if [[ -d "$WORKFLOWS_DIR" ]]; then
-  read -r -p "$(echo -e "${BOLD}Include CI/CD workflows from workflow-templates?${RESET} [Y/n]: ")" INCLUDE_CICD
+  read -r -p "$(echo -e "${BOLD}Include CI/CD workflows?${RESET} [Y/n]: ")" INCLUDE_CICD
   INCLUDE_CICD="${INCLUDE_CICD:-Y}"
 else
-  warn "workflow-templates not found at $WORKFLOWS_DIR — skipping CI/CD"
+  warn "workflow-templates submodule not initialised — run: git submodule update --init"
   INCLUDE_CICD="n"
 fi
 

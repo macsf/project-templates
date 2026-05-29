@@ -26,8 +26,7 @@ Not a runnable application.
 
 ## CI/CD source
 
-`scaffold.sh` reads workflows from `../workflow-templates/templates/fullstack-app/`.
-That repo must be a sibling directory.
+`scaffold.sh` reads workflows from `workflow-templates/templates/fullstack-app/` (git submodule at https://github.com/macsf/workflow-templates).
 
 ## Adding a template
 
@@ -48,6 +47,6 @@ That repo must be a sibling directory.
 ## scaffold.sh conventions
 
 - Bash with `set -euo pipefail`.
-- Use `sed` substitution for vars (same pattern as `../workflow-templates/scaffold.sh`).
+- Use `sed` substitution for vars (same pattern as `workflow-templates/scaffold.sh`).
 - Print each written file with `echo "  wrote <path>"`.
 - End with printed next-steps.

@@ -13,7 +13,7 @@ Both ship with:
 - TypeScript strict mode
 - ESLint flat config + Prettier
 - Husky pre-commit hooks (lint-staged)
-- GitHub Actions CI + deploy (fullstack blue-green via [workflow-templates](../workflow-templates))
+- GitHub Actions CI + deploy (fullstack blue-green via [workflow-templates](https://github.com/macsf/workflow-templates))
 - `CLAUDE.md` and `AGENTS.md`
 - Dev auth bypass (`DEV_BYPASS_AUTH=true`)
 
@@ -21,7 +21,7 @@ Both ship with:
 
 - Node 22+
 - pnpm 10+
-- `../workflow-templates` present as a sibling directory (for CI/CD scaffolding)
+- Git (submodules are used; run `git submodule update --init` after cloning)
 
 ## Usage
 
@@ -81,6 +81,7 @@ project-templates/
 ├── templates/
 │   ├── vite/                 # Vite + Express + Prisma template
 │   └── nextjs/               # Next.js App Router + Prisma template
+├── workflow-templates/       # Git submodule (macsf/workflow-templates)
 ├── README.md
 ├── CLAUDE.md
 └── AGENTS.md
@@ -88,7 +89,7 @@ project-templates/
 
 ## CI/CD
 
-Workflows come from `../workflow-templates` (`fullstack-app` tier).
+Workflows source: [macsf/workflow-templates](https://github.com/macsf/workflow-templates) (`fullstack-app` tier), included as a git submodule at `workflow-templates/`.
 The scaffold script copies and substitutes them into `.github/workflows/`.
 
 Required GitHub secrets for deploy:

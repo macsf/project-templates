@@ -2,7 +2,7 @@
 
 ## What this repo is
 
-A scaffolding repo. It contains two opinionated project templates (`templates/vite/`, `templates/nextjs/`) and a `scaffold.sh` script that copies a chosen template to a target directory, substitutes `{{VARS}}`, and wires in CI/CD from the sibling `../workflow-templates` repo.
+A scaffolding repo. It contains two opinionated project templates (`templates/vite/`, `templates/nextjs/`) and a `scaffold.sh` script that copies a chosen template to a target directory, substitutes `{{VARS}}`, and wires in CI/CD from the `workflow-templates/` git submodule (https://github.com/macsf/workflow-templates).
 
 This repo is **not** a runnable application — do not attempt `pnpm dev` at the root.
 
@@ -22,7 +22,7 @@ scaffold.sh           # Interactive scaffold (copies template, subs vars, wires 
 
 ## Template variable format
 
-All placeholders use `{{DOUBLE_BRACES}}` — consistent with `../workflow-templates`.
+All placeholders use `{{DOUBLE_BRACES}}`.
 
 Key vars: `{{PROJECT_NAME}}`, `{{PROJECT_TITLE}}`, `{{PNPM_VERSION}}`, `{{NODE_VERSION}}`,
 `{{DB_PROVIDER}}`, `{{DATABASE_URL}}`, `{{APP_PORT}}`, `{{API_PORT}}`, `{{APP_DIR}}`,
@@ -44,7 +44,7 @@ Key vars: `{{PROJECT_NAME}}`, `{{PROJECT_TITLE}}`, `{{PNPM_VERSION}}`, `{{NODE_V
 
 ## scaffold.sh key behaviours
 
-- Reads `../workflow-templates/templates/fullstack-app/` for CI/CD.
+- Reads `workflow-templates/templates/fullstack-app/` (git submodule) for CI/CD.
 - Uses `sed` for variable substitution (simple, no templating engine).
 - Runs `git init` + initial commit in the new project dir.
 - Prompts: name, template, pnpm/Node version, DB provider, deploy config.
