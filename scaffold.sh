@@ -83,11 +83,11 @@ echo ""
 # ── Prompts ───────────────────────────────────────────────────────────────────
 
 prompt TARGET_DIR  "Target directory (absolute or relative path)"
-TARGET_DIR="$(cd "$(dirname "$TARGET_DIR")/.." 2>/dev/null && pwd)/$(basename "$TARGET_DIR")" || TARGET_DIR="$TARGET_DIR"
-# Resolve relative paths
+# Resolve to absolute path: resolve existing parent dir + basename
 if [[ "$TARGET_DIR" != /* ]]; then
   TARGET_DIR="$PWD/$TARGET_DIR"
 fi
+TARGET_DIR="$(cd "$(dirname "$TARGET_DIR")" 2>/dev/null && pwd)/$(basename "$TARGET_DIR")"
 
 if [[ -e "$TARGET_DIR" ]]; then
   error "Directory already exists: $TARGET_DIR"
@@ -256,28 +256,33 @@ git -C "$TARGET_DIR" add .
 echo ""
 success "Project scaffolded at ${TARGET_DIR}"
 echo ""
+REL_DIR="$(realpath --relative-to="$PWD" "$TARGET_DIR" 2>/dev/null || echo "$TARGET_DIR")"
 echo -e "${BOLD}Next steps:${RESET}"
-echo "  cd $(realpath --relative-to="$PWD" "$TARGET_DIR" 2>/dev/null || echo "$TARGET_DIR")"
-echo ""
 
 if [[ "$TEMPLATE" == "vite" ]]; then
-  echo "  1. Copy .env.example → .env and fill in secrets"
-  echo "  2. Create MySQL databases:"
+  echo "  1. cd ${REL_DIR}"
+  echo "  2. Copy .env.example → .env and fill in secrets"
+  echo "  3. Create MySQL databases:"
   echo "       CREATE DATABASE \`${PROJECT_NAME}\`;"
   echo "       CREATE DATABASE \`${PROJECT_NAME}_shadow\`;"
-  echo "  3. pnpm install"
-  echo "  4. pnpm prisma:migrate  # or prisma:migrate:deploy"
-  echo "  5. pnpm dev:all"
+  echo "  4. pnpm install"
+  echo "  5. pnpm prisma:migrate  # or prisma:migrate:deploy"
+  echo "  6. pnpm dev:all"
 else
-  echo "  1. Copy .env.local.example → .env.local and fill in secrets"
+  echo "  1. cd ${REL_DIR}"
+  echo "  2. Copy .env.local.example → .env.local and fill in secrets"
   if [[ "$DB_PROVIDER" == "mysql" ]]; then
-    echo "  2. Create MySQL database:"
+    echo "  3. Create MySQL database:"
     echo "       CREATE DATABASE \`${PROJECT_NAME}\`;"
     echo "       CREATE DATABASE \`${PROJECT_NAME}_shadow\`;"
+    echo "  4. pnpm install"
+    echo "  5. pnpm prisma:migrate  # or prisma:push for dev"
+    echo "  6. pnpm dev"
+  else
+    echo "  3. pnpm install"
+    echo "  4. pnpm prisma:push"
+    echo "  5. pnpm dev"
   fi
-  echo "  2. pnpm install"
-  echo "  3. pnpm prisma:migrate  # or prisma:push for dev"
-  echo "  4. pnpm dev"
 fi
 
 echo ""
