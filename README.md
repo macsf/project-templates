@@ -25,6 +25,14 @@ Both ship with:
 
 ## Usage
 
+**Without cloning** (recommended):
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/macsf/project-templates/main/install.sh)
+```
+
+**From a local clone:**
+
 ```bash
 bash scaffold.sh /path/to/new-project
 ```
