@@ -250,6 +250,7 @@ fi
 info "Initialising git repository"
 git -C "$TARGET_DIR" init
 git -C "$TARGET_DIR" add .
+git -C "$TARGET_DIR" commit -m "Initial commit."
 
 # ── Done ───────────────────────────────────────────────────────────────────────
 
