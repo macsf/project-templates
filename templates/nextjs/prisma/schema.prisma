@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider          = "{{DB_PROVIDER}}"
   url               = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL") # MYSQL_ONLY
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL") # optional: needed for providers that don't support CREATE DATABASE (e.g. PlanetScale, Railway)
 }
 
 model Account {
