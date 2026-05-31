@@ -215,11 +215,11 @@ render "$TARGET_DIR" \
   "{{PM2_APP_NAME}}"  "$PM2_APP_NAME" \
   "{{API_DIR}}"       "$API_DIR"
 
-# For SQLite: remove the MYSQL_ONLY shadowDatabaseUrl line from Prisma schema
+# For SQLite: remove the shadowDatabaseUrl line from Prisma schema (not supported by SQLite)
 if [[ "$DB_PROVIDER" == "sqlite" ]]; then
   SCHEMA_FILE="$TARGET_DIR/prisma/schema.prisma"
   if [[ -f "$SCHEMA_FILE" ]]; then
-    sed -i.bak '/# MYSQL_ONLY/d' "$SCHEMA_FILE"
+    sed -i.bak '/shadowDatabaseUrl/d' "$SCHEMA_FILE"
     rm -f "${SCHEMA_FILE}.bak"
   fi
 fi

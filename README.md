@@ -43,7 +43,6 @@ The script will prompt for:
 3. pnpm/Node version (defaults: 10 / 22)
 4. DB provider: SQLite or MySQL (Next.js only)
 5. Deploy config: app dir, PM2 name
-6. Include version bump on deploy? (Y/n)
 
 Then it copies the template, substitutes all `{{VARS}}`, wires in CI/CD workflows, and runs `git init`.
 

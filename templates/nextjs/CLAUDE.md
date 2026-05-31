@@ -12,7 +12,7 @@
 | Styling    | Tailwind CSS v4, shadcn/ui            |
 | Auth       | NextAuth 4 (Google Provider, Prisma Adapter) |
 | Database   | Prisma ({{DB_PROVIDER}})              |
-| Testing    | Vitest (if added), Playwright (if added) |
+| Testing    | Vitest, jsdom, Testing Library           |
 | Package Mgr| pnpm                                  |
 
 ## Key files
