@@ -1,11 +1,11 @@
 # {{PROJECT_TITLE}}
 
-Fullstack TypeScript app — Next.js 15 App Router + NextAuth + Prisma ({{DB_PROVIDER}}).
+Fullstack TypeScript app: Next.js App Router + NextAuth + Prisma ({{DB_PROVIDER}}).
 
 ## Stack
 
-- **Framework**: Next.js 15 App Router, TypeScript
-- **Styling**: Tailwind CSS v4, shadcn/ui
+- **Framework**: Next.js App Router, TypeScript
+- **Styling**: Tailwind CSS, shadcn/ui
 - **Auth**: NextAuth 4 with Google Provider
 - **Database**: Prisma ({{DB_PROVIDER}})
 - **Package manager**: pnpm

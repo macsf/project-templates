@@ -6,8 +6,8 @@ Opinionated project starters. Three templates, one scaffold script.
 
 | Template | Stack | Auth | DB |
 |---|---|---|---|
-| `vite` | React 19 + Vite 7 + Express 5 + Tailwind v4 + shadcn/ui | Google OAuth (session-based) | Prisma + MySQL |
-| `nextjs` | Next.js 15 App Router + Tailwind v4 + shadcn/ui | Google OAuth (NextAuth) | Prisma + SQLite or MySQL |
+| `vite` | React + Vite + Express + Tailwind + shadcn/ui | Google OAuth (session-based) | Prisma + MySQL |
+| `nextjs` | Next.js App Router + Tailwind + shadcn/ui | Google OAuth (NextAuth) | Prisma + SQLite or MySQL |
 | `cli` | TypeScript ESM CLI (`bin` → `dist/index.js`) | none | none |
 
 Web templates ship with Docker unless you pick **none**. The CLI template is CI only (no Docker).

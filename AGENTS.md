@@ -11,8 +11,8 @@ bash scaffold.sh /path/to/new-project
 ## Structure
 
 ```
-templates/vite/       # React 19 + Vite + Express + Prisma + shadcn/ui
-templates/nextjs/     # Next.js 15 App Router + Prisma + NextAuth + shadcn/ui
+templates/vite/       # React + Vite + Express + Prisma + shadcn/ui
+templates/nextjs/     # Next.js App Router + Prisma + NextAuth + shadcn/ui
 templates/cli/        # TypeScript ESM CLI (adapted from new-cli-project)
 scaffold.sh           # Copies template, substitutes vars, wires CI/CD
 workflow-templates/   # Git submodule (macsf/workflow-templates)
@@ -37,8 +37,8 @@ Key vars: `{{PROJECT_NAME}}`, `{{PROJECT_TITLE}}`, `{{PNPM_VERSION}}`, `{{NODE_V
 
 | Folder | Framework | Auth | DB | CI/CD tier |
 |---|---|---|---|---|
-| `vite` | React 19 + Vite + Express | Google OAuth (session cookie) | Prisma + MySQL | `docker-hostinger`, `docker-compose`, or `library` |
-| `nextjs` | Next.js 15 App Router | Google OAuth (NextAuth) | Prisma + SQLite or MySQL | `docker-hostinger`, `docker-compose`, or `library` |
+| `vite` | React + Vite + Express | Google OAuth (session cookie) | Prisma + MySQL | `docker-hostinger`, `docker-compose`, or `library` |
+| `nextjs` | Next.js App Router | Google OAuth (NextAuth) | Prisma + SQLite or MySQL | `docker-hostinger`, `docker-compose`, or `library` |
 | `cli` | TypeScript ESM CLI | none | none | `library` |
 
 ## CI/CD source

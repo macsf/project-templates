@@ -4,8 +4,8 @@
 
 | Layer | Tech |
 | --- | --- |
-| Framework | Next.js 15 App Router (RSC) |
-| Styling | Tailwind CSS v4 (HSL vars), shadcn/ui new-york |
+| Framework | Next.js App Router (RSC) |
+| Styling | Tailwind CSS (HSL vars), shadcn/ui new-york |
 | Auth | NextAuth 4 + Google Provider + PrismaAdapter |
 | Database | Prisma ({{DB_PROVIDER}}) |
 | Testing | Vitest, jsdom, Testing Library |

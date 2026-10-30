@@ -4,8 +4,8 @@ Fullstack TypeScript app — React (Vite) + Express + Prisma (MySQL).
 
 ## Stack
 
-- **Frontend**: React 19, Vite 7, TypeScript, Tailwind CSS v4, shadcn/ui
-- **Backend**: Express 5, TypeScript
+- **Frontend**: React, Vite, TypeScript, Tailwind CSS, shadcn/ui
+- **Backend**: Express, TypeScript
 - **Database**: MySQL via Prisma
 - **Auth**: Google OAuth + HMAC-signed httpOnly session cookies
 - **Package manager**: pnpm
