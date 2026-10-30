@@ -129,7 +129,7 @@ esac
 
 echo ""
 prompt PNPM_VERSION  "pnpm version" "10"
-prompt NODE_VERSION  "Node.js version" "22"
+prompt NODE_VERSION  "Node.js version" "24"
 
 APP_PORT=""
 API_PORT=""

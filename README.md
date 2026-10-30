@@ -23,13 +23,13 @@ Shared:
 
 ## Prerequisites
 
-- Node 22+
+- Node 24+
 - pnpm 10+
 - Git (submodules are used; run `git submodule update --init` after cloning)
 
 ## Usage
 
-**Other machine** (no local clone). Needs git, pnpm, Node 22+. Do not `curl | bash`; prompts need a TTY.
+**Other machine** (no local clone). Needs git, pnpm, Node 24+. Do not `curl | bash`; prompts need a TTY.
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/macsf/project-templates/main/install.sh)
@@ -49,7 +49,7 @@ The script will prompt for:
 
 1. Project name (kebab-case, min 3 chars)
 2. Template: `vite`, `nextjs`, or `cli`
-3. pnpm/Node version (defaults: 10 / 22)
+3. pnpm/Node version (defaults: 10 / 24)
 4. DB provider: SQLite or MySQL (Next.js only)
 5. Deploy scheme (web only): Hostinger, Dokploy/Coolify, or none
 6. Bump dependencies to npm latest (default yes: `pnpm update --latest`)
@@ -94,7 +94,7 @@ Hostinger `project-name` must be at least 3 characters. Secrets live in GitHub e
 | `{{PROJECT_NAME}}` | kebab-case name | required |
 | `{{PROJECT_TITLE}}` | Title Case display name | derived from name |
 | `{{PNPM_VERSION}}` | pnpm version | 10 |
-| `{{NODE_VERSION}}` | Node.js version | 22 |
+| `{{NODE_VERSION}}` | Node.js version | 24 |
 | `{{DB_PROVIDER}}` | `sqlite` or `mysql` (nextjs) | `sqlite` |
 | `{{DATABASE_URL}}` | Prisma connection string | per provider |
 | `{{APP_PORT}}` | Frontend dev port | 5173 (vite), 3000 (next) |
