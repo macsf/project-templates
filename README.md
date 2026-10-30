@@ -45,7 +45,16 @@ Shallow-clones into a temp dir, runs the scaffold, then deletes the clone. Lives
 bash ~/Developer/personal/project-templates/scaffold.sh ~/projects/new-app
 ```
 
-The script will prompt for:
+Flags skip prompts. `--yes` takes defaults for anything not passed:
+
+```bash
+bash ~/Developer/personal/project-templates/scaffold.sh ~/projects/my-cli \
+  --template cli --name my-cli --yes
+```
+
+`new-cli-project <name>` in toolbox is a wrapper around that CLI path.
+
+Interactive prompts (when flags are omitted):
 
 1. Project name (kebab-case, min 3 chars)
 2. Template: `vite`, `nextjs`, or `cli`
@@ -54,7 +63,7 @@ The script will prompt for:
 5. Deploy scheme (web only): Hostinger, Dokploy/Coolify, or none
 6. Bump dependencies to npm latest (default yes: `pnpm update --latest`)
 
-Then it copies the template, substitutes all `{{VARS}}`, wires CI/CD, optionally bumps deps, and runs `git init`.
+Then it copies the template, substitutes all `{{VARS}}`, wires CI/CD, installs deps (`pnpm update --latest` or `pnpm install`), and runs `git init`.
 
 Do not put `"next": "latest"` in the template `package.json`. Packages have a `latest` dist-tag, not an LTS tag (that is a Node thing). Scaffold-time `pnpm update --latest` rewrites pins and writes the lockfile. It can jump majors. After that, Dependabot keeps minors/patches.
 

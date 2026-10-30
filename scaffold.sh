@@ -55,10 +55,12 @@ render() {
   done
 
   find "$dir" "${find_args[@]}" | while IFS= read -r file; do
-    if file "$file" | grep -q "text"; then
-      sed -i.bak "$sed_expr" "$file"
-      rm -f "${file}.bak"
-    fi
+    case "$file" in
+      *.png|*.jpg|*.jpeg|*.gif|*.webp|*.ico|*.woff|*.woff2|*.ttf|*.eot|*.zip|*.gz|*.bin)
+        continue ;;
+    esac
+    sed -i.bak "$sed_expr" "$file"
+    rm -f "${file}.bak"
   done
 }
 
@@ -70,10 +72,169 @@ copy_rendered() {
   echo "  wrote $dest"
 }
 
+usage() {
+  cat <<'EOF'
+Usage: scaffold.sh [TARGET_DIR] [options]
+
+Options:
+  --template vite|nextjs|cli
+  --name NAME                 kebab-case, min 3 chars
+  --title TITLE
+  --pnpm VERSION              default 10
+  --node VERSION              default 24
+  --db sqlite|mysql           nextjs only
+  --database-url URL
+  --app-port N
+  --api-port N                vite only
+  --deploy hostinger|docker-compose|none
+  --ci / --no-ci
+  --bump / --no-bump          pnpm update --latest
+  --yes, -y                   no prompts; missing values use defaults
+  --help, -h
+
+Examples:
+  bash scaffold.sh ~/projects/my-app
+  bash scaffold.sh ~/projects/my-cli --template cli --name my-cli --yes
+EOF
+}
+
+# If FLAG_VAL is set, use it. If YES, use DEFAULT (error if empty). Else prompt.
+apply_or_prompt() {
+  local var_name="$1"
+  local message="$2"
+  local default="${3:-}"
+  local flag_val="${4:-}"
+
+  if [[ -n "$flag_val" ]]; then
+    printf -v "$var_name" '%s' "$flag_val"
+    return
+  fi
+  if [[ "$YES" -eq 1 ]]; then
+    [[ -n "$default" ]] || error "$message is required (pass a flag or omit --yes)"
+    printf -v "$var_name" '%s' "$default"
+    return
+  fi
+  prompt "$var_name" "$message" "$default"
+}
+
+apply_yn() {
+  local var_name="$1"
+  local message="$2"
+  local default="$3"
+  local flag_val="${4:-}"
+  local value=""
+
+  if [[ -n "$flag_val" ]]; then
+    printf -v "$var_name" '%s' "$flag_val"
+    return
+  fi
+  if [[ "$YES" -eq 1 ]]; then
+    printf -v "$var_name" '%s' "$default"
+    return
+  fi
+  read -r -p "$(echo -e "${BOLD}${message}${RESET} [${default}]: ")" value
+  printf -v "$var_name" '%s' "${value:-$default}"
+}
+
+require_flag_value() {
+  [[ $# -ge 2 ]] || error "$1 requires a value"
+}
+
+resolve_template() {
+  case "$1" in
+    1|vite) TEMPLATE="vite" ;;
+    2|nextjs) TEMPLATE="nextjs" ;;
+    3|cli) TEMPLATE="cli" ;;
+    *) error "Invalid template: $1 (vite, nextjs, or cli)" ;;
+  esac
+}
+
+resolve_deploy() {
+  case "$1" in
+    1|hostinger)
+      DEPLOY_SCHEME="hostinger"
+      DEPLOY_SCHEME_LABEL="Hostinger"
+      WORKFLOW_TIER="docker-hostinger"
+      ;;
+    2|docker|docker-compose|dokploy|coolify)
+      DEPLOY_SCHEME="docker-compose"
+      DEPLOY_SCHEME_LABEL="Dokploy / Coolify"
+      WORKFLOW_TIER="docker-compose"
+      ;;
+    3|none|ci)
+      DEPLOY_SCHEME="none"
+      DEPLOY_SCHEME_LABEL="CI only"
+      WORKFLOW_TIER="library"
+      ;;
+    *) error "Invalid deploy scheme: $1 (hostinger, docker-compose, or none)" ;;
+  esac
+}
+
+resolve_db() {
+  case "$1" in
+    1|sqlite)
+      DB_PROVIDER="sqlite"
+      DATABASE_URL="file:./dev.db"
+      ;;
+    2|mysql)
+      DB_PROVIDER="mysql"
+      DATABASE_URL="mysql://root:password@127.0.0.1:3306/${PROJECT_NAME}"
+      ;;
+    *) error "Invalid database: $1 (sqlite or mysql)" ;;
+  esac
+}
+
 # ── Validate tools ────────────────────────────────────────────────────────────
 
-for cmd in git pnpm sed find cp file; do
+for cmd in git pnpm sed find cp; do
   command -v "$cmd" >/dev/null 2>&1 || error "'$cmd' is required but not installed."
+done
+
+# ── Flags ─────────────────────────────────────────────────────────────────────
+
+YES=0
+FLAG_TEMPLATE=""
+FLAG_NAME=""
+FLAG_TITLE=""
+FLAG_PNPM=""
+FLAG_NODE=""
+FLAG_DB=""
+FLAG_DATABASE_URL=""
+FLAG_APP_PORT=""
+FLAG_API_PORT=""
+FLAG_DEPLOY=""
+FLAG_CI=""
+FLAG_BUMP=""
+TARGET_DIR=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --template)      require_flag_value "$@"; FLAG_TEMPLATE="$2"; shift 2 ;;
+    --name)          require_flag_value "$@"; FLAG_NAME="$2"; shift 2 ;;
+    --title)         require_flag_value "$@"; FLAG_TITLE="$2"; shift 2 ;;
+    --pnpm)          require_flag_value "$@"; FLAG_PNPM="$2"; shift 2 ;;
+    --node)          require_flag_value "$@"; FLAG_NODE="$2"; shift 2 ;;
+    --db)            require_flag_value "$@"; FLAG_DB="$2"; shift 2 ;;
+    --database-url)  require_flag_value "$@"; FLAG_DATABASE_URL="$2"; shift 2 ;;
+    --app-port)      require_flag_value "$@"; FLAG_APP_PORT="$2"; shift 2 ;;
+    --api-port)      require_flag_value "$@"; FLAG_API_PORT="$2"; shift 2 ;;
+    --deploy)        require_flag_value "$@"; FLAG_DEPLOY="$2"; shift 2 ;;
+    --ci)            FLAG_CI="Y"; shift ;;
+    --no-ci)         FLAG_CI="n"; shift ;;
+    --bump)          FLAG_BUMP="Y"; shift ;;
+    --no-bump)       FLAG_BUMP="n"; shift ;;
+    --yes|-y)        YES=1; shift ;;
+    --help|-h)       usage; exit 0 ;;
+    -*)              error "Unknown flag: $1" ;;
+    *)
+      if [[ -z "$TARGET_DIR" ]]; then
+        TARGET_DIR="$1"
+        shift
+      else
+        error "Unexpected argument: $1"
+      fi
+      ;;
+  esac
 done
 
 # ── Banner ────────────────────────────────────────────────────────────────────
@@ -86,11 +247,9 @@ echo ""
 
 # ── Prompts ───────────────────────────────────────────────────────────────────
 
-if [[ $# -ge 1 && -n "${1:-}" ]]; then
-  TARGET_DIR="$1"
-  shift
-else
-  prompt TARGET_DIR  "Target directory (absolute or relative path)"
+if [[ -z "$TARGET_DIR" ]]; then
+  [[ "$YES" -eq 1 ]] && error "Pass a target directory with --yes"
+  prompt TARGET_DIR "Target directory (absolute or relative path)"
 fi
 if [[ "$TARGET_DIR" != /* ]]; then
   TARGET_DIR="$PWD/$TARGET_DIR"
@@ -101,7 +260,13 @@ if [[ -e "$TARGET_DIR" ]]; then
   error "Directory already exists: $TARGET_DIR"
 fi
 
-prompt PROJECT_NAME  "Project name (kebab-case, min 3 chars)"
+if [[ -n "$FLAG_NAME" ]]; then
+  PROJECT_NAME="$FLAG_NAME"
+elif [[ "$YES" -eq 1 ]]; then
+  PROJECT_NAME="$(basename "$TARGET_DIR")"
+else
+  prompt PROJECT_NAME "Project name (kebab-case, min 3 chars)"
+fi
 if ! [[ "$PROJECT_NAME" =~ ^[a-z][a-z0-9-]*$ ]]; then
   error "Project name must be kebab-case (lowercase letters, numbers, hyphens)"
 fi
@@ -109,27 +274,27 @@ if [[ ${#PROJECT_NAME} -lt 3 ]]; then
   error "Project name must be at least 3 characters (Hostinger rejects shorter names)"
 fi
 
-PROJECT_TITLE=$(echo "$PROJECT_NAME" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}')
-prompt PROJECT_TITLE "Project title" "$PROJECT_TITLE"
+DERIVED_TITLE=$(echo "$PROJECT_NAME" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}')
+apply_or_prompt PROJECT_TITLE "Project title" "$DERIVED_TITLE" "$FLAG_TITLE"
+
+if [[ -n "$FLAG_TEMPLATE" ]]; then
+  resolve_template "$FLAG_TEMPLATE"
+elif [[ "$YES" -eq 1 ]]; then
+  error "Pass --template vite|nextjs|cli with --yes"
+else
+  echo ""
+  echo -e "Choose template:"
+  echo "  1) vite    — React + Express + Prisma (MySQL)"
+  echo "  2) nextjs  — Next.js App Router + NextAuth + Prisma"
+  echo "  3) cli     — TypeScript command-line tool (no Docker)"
+  echo ""
+  prompt TEMPLATE_CHOICE "Template" "1"
+  resolve_template "$TEMPLATE_CHOICE"
+fi
 
 echo ""
-echo -e "Choose template:"
-echo "  1) vite    — React + Express + Prisma (MySQL)"
-echo "  2) nextjs  — Next.js App Router + NextAuth + Prisma"
-echo "  3) cli     — TypeScript command-line tool (no Docker)"
-echo ""
-prompt TEMPLATE_CHOICE "Template" "1"
-
-case "$TEMPLATE_CHOICE" in
-  1|vite)   TEMPLATE="vite"   ;;
-  2|nextjs) TEMPLATE="nextjs" ;;
-  3|cli)    TEMPLATE="cli"    ;;
-  *) error "Invalid template choice: $TEMPLATE_CHOICE" ;;
-esac
-
-echo ""
-prompt PNPM_VERSION  "pnpm version" "10"
-prompt NODE_VERSION  "Node.js version" "24"
+apply_or_prompt PNPM_VERSION "pnpm version" "10" "$FLAG_PNPM"
+apply_or_prompt NODE_VERSION "Node.js version" "24" "$FLAG_NODE"
 
 APP_PORT=""
 API_PORT=""
@@ -137,43 +302,37 @@ DB_PROVIDER=""
 DATABASE_URL=""
 
 if [[ "$TEMPLATE" == "vite" ]]; then
-  APP_PORT="5173"
-  API_PORT="3001"
   DB_PROVIDER="mysql"
-  prompt APP_PORT  "Frontend port" "$APP_PORT"
-  prompt API_PORT  "API port"      "$API_PORT"
-  DATABASE_URL="mysql://root:password@127.0.0.1:3306/${PROJECT_NAME}"
-  prompt DATABASE_URL "DATABASE_URL" "$DATABASE_URL"
+  apply_or_prompt APP_PORT "Frontend port" "5173" "$FLAG_APP_PORT"
+  apply_or_prompt API_PORT "API port" "3001" "$FLAG_API_PORT"
+  apply_or_prompt DATABASE_URL "DATABASE_URL" \
+    "mysql://root:password@127.0.0.1:3306/${PROJECT_NAME}" "$FLAG_DATABASE_URL"
 elif [[ "$TEMPLATE" == "nextjs" ]]; then
-  APP_PORT="3000"
-  prompt APP_PORT "App port" "$APP_PORT"
+  apply_or_prompt APP_PORT "App port" "3000" "$FLAG_APP_PORT"
 
-  echo ""
-  echo "  Choose database provider:"
-  echo "  1) sqlite  — local file, no server required"
-  echo "  2) mysql   — requires MySQL server"
-  echo ""
-  prompt DB_CHOICE "Database" "1"
+  if [[ -n "$FLAG_DB" ]]; then
+    resolve_db "$FLAG_DB"
+  elif [[ "$YES" -eq 1 ]]; then
+    resolve_db "sqlite"
+  else
+    echo ""
+    echo "  Choose database provider:"
+    echo "  1) sqlite  — local file, no server required"
+    echo "  2) mysql   — requires MySQL server"
+    echo ""
+    prompt DB_CHOICE "Database" "1"
+    resolve_db "$DB_CHOICE"
+  fi
 
-  case "$DB_CHOICE" in
-    1|sqlite)
-      DB_PROVIDER="sqlite"
-      DATABASE_URL="file:./dev.db"
-      ;;
-    2|mysql)
-      DB_PROVIDER="mysql"
-      DATABASE_URL="mysql://root:password@127.0.0.1:3306/${PROJECT_NAME}"
-      ;;
-    *) error "Invalid database choice: $DB_CHOICE" ;;
-  esac
-
-  prompt DATABASE_URL "DATABASE_URL" "$DATABASE_URL"
+  apply_or_prompt DATABASE_URL "DATABASE_URL" "$DATABASE_URL" "$FLAG_DATABASE_URL"
 fi
 
 if [[ "$TEMPLATE" == "cli" ]]; then
-  DEPLOY_SCHEME="none"
-  DEPLOY_SCHEME_LABEL="CI only"
-  WORKFLOW_TIER="library"
+  resolve_deploy "none"
+elif [[ -n "$FLAG_DEPLOY" ]]; then
+  resolve_deploy "$FLAG_DEPLOY"
+elif [[ "$YES" -eq 1 ]]; then
+  resolve_deploy "docker-compose"
 else
   echo ""
   echo "  Deploy scheme:"
@@ -182,39 +341,19 @@ else
   echo "  3) none       — CI only, no Docker"
   echo ""
   prompt DEPLOY_CHOICE "Deploy scheme" "2"
-
-  case "$DEPLOY_CHOICE" in
-    1|hostinger)
-      DEPLOY_SCHEME="hostinger"
-      DEPLOY_SCHEME_LABEL="Hostinger"
-      WORKFLOW_TIER="docker-hostinger"
-      ;;
-    2|docker|dokploy|coolify)
-      DEPLOY_SCHEME="docker-compose"
-      DEPLOY_SCHEME_LABEL="Dokploy / Coolify"
-      WORKFLOW_TIER="docker-compose"
-      ;;
-    3|none|ci)
-      DEPLOY_SCHEME="none"
-      DEPLOY_SCHEME_LABEL="CI only"
-      WORKFLOW_TIER="library"
-      ;;
-    *) error "Invalid deploy scheme: $DEPLOY_CHOICE" ;;
-  esac
+  resolve_deploy "$DEPLOY_CHOICE"
 fi
 
 echo ""
 if [[ -d "$WORKFLOWS_ROOT" ]]; then
-  read -r -p "$(echo -e "${BOLD}Include CI/CD workflows?${RESET} [Y/n]: ")" INCLUDE_CICD
-  INCLUDE_CICD="${INCLUDE_CICD:-Y}"
+  apply_yn INCLUDE_CICD "Include CI/CD workflows?" "Y" "$FLAG_CI"
 else
   warn "workflow-templates submodule not initialised — run: git submodule update --init"
   INCLUDE_CICD="n"
 fi
 
 echo ""
-read -r -p "$(echo -e "${BOLD}Bump dependencies to npm latest?${RESET} [Y/n]: ")" BUMP_DEPS
-BUMP_DEPS="${BUMP_DEPS:-Y}"
+apply_yn BUMP_DEPS "Bump dependencies to npm latest?" "Y" "$FLAG_BUMP"
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 
@@ -236,8 +375,11 @@ else
   echo "  Deps:           template pins"
 fi
 echo ""
-read -r -p "$(echo -e "${BOLD}Proceed?${RESET} [Y/n]: ")" CONFIRM
-CONFIRM="${CONFIRM:-Y}"
+if [[ "$YES" -eq 1 ]]; then
+  CONFIRM="Y"
+else
+  apply_yn CONFIRM "Proceed?" "Y"
+fi
 [[ "$CONFIRM" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
 
 # ── Copy template ─────────────────────────────────────────────────────────────
@@ -337,6 +479,15 @@ if [[ "$BUMP_DEPS" =~ ^[Yy]$ ]]; then
   else
     warn "Bump failed (offline or registry error). Keeping template pins."
     warn "Later: cd ${TARGET_DIR} && pnpm update --latest"
+    ( cd "$TARGET_DIR" && pnpm install ) || warn "pnpm install also failed."
+  fi
+else
+  info "Installing dependencies (template pins)"
+  if ( cd "$TARGET_DIR" && pnpm install ); then
+    success "pnpm-lock.yaml written from template pins"
+  else
+    warn "pnpm install failed (offline or registry error)."
+    warn "Later: cd ${TARGET_DIR} && pnpm install"
   fi
 fi
 

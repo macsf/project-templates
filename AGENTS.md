@@ -6,6 +6,7 @@ Scaffolding library. Starters: `templates/vite/`, `templates/nextjs/`, `template
 
 ```bash
 bash scaffold.sh /path/to/new-project
+bash scaffold.sh /path/to/new-cli --template cli --name my-cli --yes
 ```
 
 ## Structure
@@ -88,7 +89,8 @@ Do not add a PM2 / DigitalOcean tarball deploy. That path is retired.
 - Copies `docker-compose.hostinger.yml` or `docker-compose.dokploy.yml` to `docker-compose.yml`.
 - Runs `git init` + initial commit in the new project dir.
 - Prompts: name, template, pnpm/Node version, DB provider, deploy scheme, bump deps to npm latest.
-- After copy, optional `pnpm update --latest` (needs network). Do not store `"latest"` as a version in template package.json.
+- Flags skip prompts (`--template`, `--name`, `--yes`, `--no-bump`, …). `--yes` requires a target dir and `--template`.
+- After copy, `pnpm update --latest` (bump) or `pnpm install` (pins). Both need network. Do not store `"latest"` as a version in template package.json.
 - Print each written file with `echo "  wrote <path>"`.
 - End with printed next-steps.
 - Project name minimum 3 characters (Hostinger API).
