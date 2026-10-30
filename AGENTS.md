@@ -12,6 +12,7 @@ bash scaffold.sh /path/to/new-cli --template cli --name my-cli --yes
 ## Structure
 
 ```
+docs/HOSTINGER.md     # First-deploy checklist (API key, VM ID, deploy key, GHCR, Traefik)
 templates/vite/       # React + Vite + Express + Prisma + shadcn/ui
 templates/nextjs/     # Next.js App Router + Prisma + NextAuth + shadcn/ui
 templates/cli/        # TypeScript ESM CLI (adapted from new-cli-project)

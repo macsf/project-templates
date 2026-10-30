@@ -545,7 +545,8 @@ fi
 if [[ "$DEPLOY_SCHEME" == "hostinger" ]]; then
   echo ""
   echo "  Docker: see docs/DOCKER.md"
-  echo "  Hostinger: create GitHub environment 'deploy' (HOSTINGER_*, TRAEFIK_*, app secrets)"
+  echo "  Hostinger: GitHub environment 'deploy' (HOSTINGER_*, TRAEFIK_*, app secrets),"
+  echo "             VPS deploy key on the repo, docker login ghcr.io on the VPS"
 elif [[ "$DEPLOY_SCHEME" == "docker-compose" ]]; then
   echo ""
   echo "  Docker: see docs/DOCKER.md"

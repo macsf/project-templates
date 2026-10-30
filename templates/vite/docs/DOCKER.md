@@ -29,15 +29,30 @@ into the SPA). Use `VITE_API_BASE_URL=/api` so the UI talks same-origin.
 GitHub Actions builds `ghcr.io/<owner>/<repo>:<sha>` and `:latest`, then
 `hostinger/deploy-on-vps@v2` deploys this compose file.
 
-1. Create GitHub environment `deploy` (see secrets table below).
-2. Hostinger `project-name` must be at least 3 characters (use `{{PROJECT_NAME}}`).
-3. VPS Traefik uses host networking and reads Docker labels. Publish on `127.0.0.1` only.
-4. Private repo: add a VPS SSH deploy key under GitHub **Settings → Deploy keys**.
-5. VPS must be able to pull GHCR.
-6. Push to `main` deploys only when a commit subject starts with `release:` or `fix:`
-   (including `fix(scope):`). `workflow_dispatch` always deploys. `[skip deploy]` skips.
+Three credentials, easy to mix up:
 
-Compose **pulls** `APP_IMAGE`. There is no `build:` key.
+| What | Where | Why |
+|---|---|---|
+| Hostinger API key + VM ID | GitHub environment `deploy` | The deploy action talks to Hostinger |
+| VPS SSH deploy key | GitHub **Settings → Deploy keys** | Docker Manager clones the repo (compose file) |
+| GHCR login on the VPS | `docker login ghcr.io` on the box | Pulls the private image (not the deploy key) |
+
+### First deploy
+
+1. Traefik on the VPS: host networking, Docker provider, cert resolver
+   (`TRAEFIK_CERTRESOLVER`, usually `letsencrypt`). Shared across apps.
+2. `docker login ghcr.io` on the VPS (`read:packages` PAT, or public package).
+3. GitHub **Settings → Environments → New**: name it exactly `deploy`.
+   Secrets go **here**, not at repo level.
+4. **Settings → Deploy keys**: add the VPS SSH public key (read-only is enough).
+5. DNS: `TRAEFIK_HOST` A record → the VPS. Unique loopback `PORT` per app on this box.
+6. Google Cloud: authorized JavaScript origin `https://<TRAEFIK_HOST>` (GIS; no redirect URI).
+7. Commit Prisma migration files (entrypoint runs `prisma migrate deploy`).
+8. Push to `main` with subject `release:` or `fix:` (including `fix(scope):`), or run
+   **Deploy (Hostinger)** by hand. `[skip deploy]` skips. CI must pass first.
+
+Hostinger `project-name` must be at least 3 characters (use `{{PROJECT_NAME}}`).
+Compose **pulls** `APP_IMAGE`. There is no `build:` key. Publish on `127.0.0.1` only.
 
 ### GitHub environment `deploy`
 

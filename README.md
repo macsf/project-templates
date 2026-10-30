@@ -92,9 +92,11 @@ Local container smoke (Docker schemes): `docker compose build && docker compose 
 | **Dokploy / Coolify** | CI only | Builds `Dockerfile` from the repo | `build:` + `expose:`, no Traefik labels |
 | **none** | CI only (`library` tier) | You run it (or publish the CLI) | Docker files stripped |
 
-Push to `main` deploys on Hostinger only when a commit subject starts with `release:` or `fix:` (including `fix(scope):`). `workflow_dispatch` always deploys. Details: `docs/DOCKER.md` in the scaffolded project, and [workflow-templates](https://github.com/macsf/workflow-templates).
+Push to `main` deploys on Hostinger only when a commit subject starts with `release:` or `fix:` (including `fix(scope):`). `workflow_dispatch` always deploys.
 
-Hostinger `project-name` must be at least 3 characters. Secrets live in GitHub environment `deploy`.
+Hostinger first deploy: [`docs/HOSTINGER.md`](docs/HOSTINGER.md). After scaffolding, the same steps live in `docs/DOCKER.md`.
+
+Need: GitHub environment `deploy` (API key, VM ID, Traefik, app secrets), VPS SSH deploy key on the repo, `docker login ghcr.io` on the VPS, DNS, unique loopback `PORT`, committed Prisma migrations. Project name at least 3 characters.
 
 ## Template variables
 
@@ -114,6 +116,7 @@ Hostinger `project-name` must be at least 3 characters. Secrets live in GitHub e
 
 ```
 project-templates/
+├── docs/HOSTINGER.md         # Hostinger first-deploy checklist
 ├── scaffold.sh               # Interactive scaffold script
 ├── templates/
 │   ├── vite/                 # Vite + Express + Prisma template
