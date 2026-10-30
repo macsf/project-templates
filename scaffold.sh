@@ -212,6 +212,10 @@ else
   INCLUDE_CICD="n"
 fi
 
+echo ""
+read -r -p "$(echo -e "${BOLD}Bump dependencies to npm latest?${RESET} [Y/n]: ")" BUMP_DEPS
+BUMP_DEPS="${BUMP_DEPS:-Y}"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 echo ""
@@ -226,6 +230,11 @@ echo "  Directory:      $TARGET_DIR"
 echo "  Deploy:         $DEPLOY_SCHEME_LABEL"
 echo "  Node version:   $NODE_VERSION"
 echo "  pnpm version:   $PNPM_VERSION"
+if [[ "$BUMP_DEPS" =~ ^[Yy]$ ]]; then
+  echo "  Deps:           npm latest (pnpm update --latest)"
+else
+  echo "  Deps:           template pins"
+fi
 echo ""
 read -r -p "$(echo -e "${BOLD}Proceed?${RESET} [Y/n]: ")" CONFIRM
 CONFIRM="${CONFIRM:-Y}"
@@ -320,6 +329,17 @@ fi
 
 info "Initialising git repository"
 git -C "$TARGET_DIR" init
+
+if [[ "$BUMP_DEPS" =~ ^[Yy]$ ]]; then
+  info "Bumping dependencies to npm latest"
+  if ( cd "$TARGET_DIR" && pnpm update --latest ); then
+    success "package.json and pnpm-lock.yaml now use current npm latest"
+  else
+    warn "Bump failed (offline or registry error). Keeping template pins."
+    warn "Later: cd ${TARGET_DIR} && pnpm update --latest"
+  fi
+fi
+
 git -C "$TARGET_DIR" add .
 git -C "$TARGET_DIR" commit -m "Initial commit."
 

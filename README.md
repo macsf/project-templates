@@ -52,8 +52,11 @@ The script will prompt for:
 3. pnpm/Node version (defaults: 10 / 22)
 4. DB provider: SQLite or MySQL (Next.js only)
 5. Deploy scheme (web only): Hostinger, Dokploy/Coolify, or none
+6. Bump dependencies to npm latest (default yes: `pnpm update --latest`)
 
-Then it copies the template, substitutes all `{{VARS}}`, wires CI/CD, and runs `git init`.
+Then it copies the template, substitutes all `{{VARS}}`, wires CI/CD, optionally bumps deps, and runs `git init`.
+
+Do not put `"next": "latest"` in the template `package.json`. Packages have a `latest` dist-tag, not an LTS tag (that is a Node thing). Scaffold-time `pnpm update --latest` rewrites pins and writes the lockfile. It can jump majors. After that, Dependabot keeps minors/patches.
 
 ## After scaffolding
 
