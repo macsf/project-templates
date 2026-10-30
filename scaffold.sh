@@ -116,12 +116,14 @@ echo ""
 echo -e "Choose template:"
 echo "  1) vite    — React + Express + Prisma (MySQL)"
 echo "  2) nextjs  — Next.js 15 App Router + NextAuth + Prisma"
+echo "  3) cli     — TypeScript command-line tool (no Docker)"
 echo ""
 prompt TEMPLATE_CHOICE "Template" "1"
 
 case "$TEMPLATE_CHOICE" in
   1|vite)   TEMPLATE="vite"   ;;
   2|nextjs) TEMPLATE="nextjs" ;;
+  3|cli)    TEMPLATE="cli"    ;;
   *) error "Invalid template choice: $TEMPLATE_CHOICE" ;;
 esac
 
@@ -129,19 +131,21 @@ echo ""
 prompt PNPM_VERSION  "pnpm version" "10"
 prompt NODE_VERSION  "Node.js version" "22"
 
+APP_PORT=""
+API_PORT=""
+DB_PROVIDER=""
+DATABASE_URL=""
+
 if [[ "$TEMPLATE" == "vite" ]]; then
   APP_PORT="5173"
   API_PORT="3001"
   DB_PROVIDER="mysql"
-  API_DIR="server"
   prompt APP_PORT  "Frontend port" "$APP_PORT"
   prompt API_PORT  "API port"      "$API_PORT"
   DATABASE_URL="mysql://root:password@127.0.0.1:3306/${PROJECT_NAME}"
   prompt DATABASE_URL "DATABASE_URL" "$DATABASE_URL"
-else
+elif [[ "$TEMPLATE" == "nextjs" ]]; then
   APP_PORT="3000"
-  API_PORT=""
-  API_DIR="."
   prompt APP_PORT "App port" "$APP_PORT"
 
   echo ""
@@ -166,26 +170,38 @@ else
   prompt DATABASE_URL "DATABASE_URL" "$DATABASE_URL"
 fi
 
-echo ""
-echo "  Deploy scheme:"
-echo "  1) hostinger  — GHCR image + Hostinger VPS (Traefik labels)"
-echo "  2) docker     — Dokploy / Coolify / generic Compose host"
-echo ""
-prompt DEPLOY_CHOICE "Deploy scheme" "2"
+if [[ "$TEMPLATE" == "cli" ]]; then
+  DEPLOY_SCHEME="none"
+  DEPLOY_SCHEME_LABEL="CI only"
+  WORKFLOW_TIER="library"
+else
+  echo ""
+  echo "  Deploy scheme:"
+  echo "  1) hostinger  — GHCR image + Hostinger VPS (Traefik labels)"
+  echo "  2) docker     — Dokploy / Coolify / generic Compose host"
+  echo "  3) none       — CI only, no Docker"
+  echo ""
+  prompt DEPLOY_CHOICE "Deploy scheme" "2"
 
-case "$DEPLOY_CHOICE" in
-  1|hostinger)
-    DEPLOY_SCHEME="hostinger"
-    DEPLOY_SCHEME_LABEL="Hostinger"
-    WORKFLOW_TIER="docker-hostinger"
-    ;;
-  2|docker|dokploy|coolify)
-    DEPLOY_SCHEME="docker-compose"
-    DEPLOY_SCHEME_LABEL="Dokploy / Coolify"
-    WORKFLOW_TIER="docker-compose"
-    ;;
-  *) error "Invalid deploy scheme: $DEPLOY_CHOICE" ;;
-esac
+  case "$DEPLOY_CHOICE" in
+    1|hostinger)
+      DEPLOY_SCHEME="hostinger"
+      DEPLOY_SCHEME_LABEL="Hostinger"
+      WORKFLOW_TIER="docker-hostinger"
+      ;;
+    2|docker|dokploy|coolify)
+      DEPLOY_SCHEME="docker-compose"
+      DEPLOY_SCHEME_LABEL="Dokploy / Coolify"
+      WORKFLOW_TIER="docker-compose"
+      ;;
+    3|none|ci)
+      DEPLOY_SCHEME="none"
+      DEPLOY_SCHEME_LABEL="CI only"
+      WORKFLOW_TIER="library"
+      ;;
+    *) error "Invalid deploy scheme: $DEPLOY_CHOICE" ;;
+  esac
+fi
 
 echo ""
 if [[ -d "$WORKFLOWS_ROOT" ]]; then
@@ -204,9 +220,9 @@ echo "  Template:       $TEMPLATE"
 echo "  Name:           $PROJECT_NAME"
 echo "  Title:          $PROJECT_TITLE"
 echo "  Directory:      $TARGET_DIR"
-echo "  App port:       $APP_PORT"
+[[ -n "$APP_PORT" ]] && echo "  App port:       $APP_PORT"
 [[ -n "$API_PORT" ]] && echo "  API port:       $API_PORT"
-echo "  DB provider:    $DB_PROVIDER"
+[[ -n "$DB_PROVIDER" ]] && echo "  DB provider:    $DB_PROVIDER"
 echo "  Deploy:         $DEPLOY_SCHEME_LABEL"
 echo "  Node version:   $NODE_VERSION"
 echo "  pnpm version:   $PNPM_VERSION"
@@ -223,15 +239,23 @@ cp -r "$TEMPLATES_DIR/$TEMPLATE" "$TARGET_DIR"
 # Keep public/.gitkeep so Docker COPY public/ has a directory in git.
 find "$TARGET_DIR" -path '*/components/ui/.gitkeep' -delete
 
-# Active compose file for the chosen scheme
-if [[ "$DEPLOY_SCHEME" == "hostinger" ]]; then
+if [[ "$DEPLOY_SCHEME" == "none" ]]; then
+  rm -rf "$TARGET_DIR/docker" \
+    "$TARGET_DIR/Dockerfile" \
+    "$TARGET_DIR/docker-compose.hostinger.yml" \
+    "$TARGET_DIR/docker-compose.dokploy.yml" \
+    "$TARGET_DIR/docker-compose.override.yml" \
+    "$TARGET_DIR/.dockerignore" \
+    "$TARGET_DIR/docs/DOCKER.md"
+  rmdir "$TARGET_DIR/docs" 2>/dev/null || true
+elif [[ "$DEPLOY_SCHEME" == "hostinger" ]]; then
   cp "$TARGET_DIR/docker-compose.hostinger.yml" "$TARGET_DIR/docker-compose.yml"
   rm -f "$TARGET_DIR/docker-compose.override.yml"
+  chmod +x "$TARGET_DIR/docker/entrypoint.sh"
 else
   cp "$TARGET_DIR/docker-compose.dokploy.yml" "$TARGET_DIR/docker-compose.yml"
+  chmod +x "$TARGET_DIR/docker/entrypoint.sh"
 fi
-
-chmod +x "$TARGET_DIR/docker/entrypoint.sh"
 
 # ── Render template vars ──────────────────────────────────────────────────────
 
@@ -287,7 +311,7 @@ fi
 if [[ "$TEMPLATE" == "vite" ]]; then
   cp "$TARGET_DIR/.env.example" "$TARGET_DIR/.env"
   info "Created .env from .env.example"
-else
+elif [[ "$TEMPLATE" == "nextjs" ]]; then
   cp "$TARGET_DIR/.env.local.example" "$TARGET_DIR/.env.local"
   info "Created .env.local from .env.local.example"
 fi
@@ -307,7 +331,11 @@ echo ""
 REL_DIR="$(realpath --relative-to="$PWD" "$TARGET_DIR" 2>/dev/null || echo "$TARGET_DIR")"
 echo -e "${BOLD}Next steps:${RESET}"
 
-if [[ "$TEMPLATE" == "vite" ]]; then
+if [[ "$TEMPLATE" == "cli" ]]; then
+  echo "  1. cd ${REL_DIR}"
+  echo "  2. pnpm install"
+  echo "  3. pnpm dev"
+elif [[ "$TEMPLATE" == "vite" ]]; then
   echo "  1. cd ${REL_DIR}"
   echo "  2. Fill in secrets in .env"
   echo "  3. Create MySQL databases:"
@@ -328,25 +356,28 @@ else
     echo "  6. pnpm dev"
   else
     echo "  3. pnpm install"
-    echo "  4. pnpm prisma:migrate  # commit the migration files before Docker deploy"
+    echo "  4. pnpm prisma:migrate"
     echo "  5. pnpm dev"
   fi
 fi
 
-echo ""
-echo "  Google OAuth redirect URI:"
 if [[ "$TEMPLATE" == "vite" ]]; then
-  echo "    http://localhost:${APP_PORT}  (frontend origin)"
-  echo "    (handled by backend — no redirect URI needed for GIS flow)"
-else
+  echo ""
+  echo "  Google OAuth: frontend origin http://localhost:${APP_PORT}"
+  echo "  (GIS flow; no redirect URI)"
+elif [[ "$TEMPLATE" == "nextjs" ]]; then
+  echo ""
+  echo "  Google OAuth redirect URI:"
   echo "    http://localhost:${APP_PORT}/api/auth/callback/google"
 fi
 
-echo ""
-echo "  Docker: see docs/DOCKER.md"
 if [[ "$DEPLOY_SCHEME" == "hostinger" ]]; then
+  echo ""
+  echo "  Docker: see docs/DOCKER.md"
   echo "  Hostinger: create GitHub environment 'deploy' (HOSTINGER_*, TRAEFIK_*, app secrets)"
-else
+elif [[ "$DEPLOY_SCHEME" == "docker-compose" ]]; then
+  echo ""
+  echo "  Docker: see docs/DOCKER.md"
   echo "  Dokploy/Coolify: point at this repo, compose path docker-compose.yml, port 8080"
 fi
 echo ""

@@ -1,6 +1,6 @@
 # project-templates — Agent Guidelines
 
-Scaffolding library. Two opinionated starters (`templates/vite/`, `templates/nextjs/`) plus `scaffold.sh`. Not a runnable application; do not `pnpm dev` at the root.
+Scaffolding library. Starters: `templates/vite/`, `templates/nextjs/`, `templates/cli/`. Plus `scaffold.sh`. Not a runnable application; do not `pnpm dev` at the root.
 
 ## Commands
 
@@ -13,6 +13,7 @@ bash scaffold.sh /path/to/new-project
 ```
 templates/vite/       # React 19 + Vite + Express + Prisma + shadcn/ui
 templates/nextjs/     # Next.js 15 App Router + Prisma + NextAuth + shadcn/ui
+templates/cli/        # TypeScript ESM CLI (adapted from new-cli-project)
 scaffold.sh           # Copies template, substitutes vars, wires CI/CD
 workflow-templates/   # Git submodule (macsf/workflow-templates)
 ```
@@ -36,8 +37,9 @@ Key vars: `{{PROJECT_NAME}}`, `{{PROJECT_TITLE}}`, `{{PNPM_VERSION}}`, `{{NODE_V
 
 | Folder | Framework | Auth | DB | CI/CD tier |
 |---|---|---|---|---|
-| `vite` | React 19 + Vite + Express | Google OAuth (session cookie) | Prisma + MySQL | `docker-hostinger` or `docker-compose` |
-| `nextjs` | Next.js 15 App Router | Google OAuth (NextAuth) | Prisma + SQLite or MySQL | `docker-hostinger` or `docker-compose` |
+| `vite` | React 19 + Vite + Express | Google OAuth (session cookie) | Prisma + MySQL | `docker-hostinger`, `docker-compose`, or `library` |
+| `nextjs` | Next.js 15 App Router | Google OAuth (NextAuth) | Prisma + SQLite or MySQL | `docker-hostinger`, `docker-compose`, or `library` |
+| `cli` | TypeScript ESM CLI | none | none | `library` |
 
 ## CI/CD source
 
@@ -47,12 +49,13 @@ Docker schemes:
 
 - **Hostinger:** GHCR image, `hostinger/deploy-on-vps@v2`, Traefik labels, loopback ports. Compose has no `build:` key.
 - **Dokploy / Coolify:** CI only. Platform builds Compose (`build:` + `expose:`, no Traefik labels). SQLite uses a named volume.
+- **none:** CI only (`library` tier). Docker files are not copied (CLI) or stripped (web).
 
 Do not add a PM2 / DigitalOcean tarball deploy. That path is retired.
 
 ## When editing templates
 
-- Edit files in `templates/vite/` or `templates/nextjs/`. Those are the sources.
+- Edit files in `templates/vite/`, `templates/nextjs/`, or `templates/cli/`. Those are the sources.
 - Keep `{{VARS}}` as-is. `scaffold.sh` substitutes them at project creation time.
 - After editing, copy the template to a scratch dir, run `pnpm install` and `pnpm typecheck`.
 
@@ -65,9 +68,10 @@ Do not add a PM2 / DigitalOcean tarball deploy. That path is retired.
 
 ## Template content rules
 
-- Every template must include: `AGENTS.md`, `README.md`, `.env.example`
-  (or `.env.local.example` for Next.js), `.husky/pre-commit`, `Dockerfile`,
+- Every template must include: `AGENTS.md`, `README.md`, `.husky/pre-commit`.
+- Web templates: `.env.example` (or `.env.local.example`), `Dockerfile`,
   `docker-compose.hostinger.yml`, `docker-compose.dokploy.yml`, `docs/DOCKER.md`.
+- CLI template: no Docker, no env file. `bin` → `./dist/index.js`.
 - Every template must have all four package.json scripts: `typecheck`, `lint`, `build`,
   and a dev start script. Pin `packageManager` and `engines.node`.
 - Prisma templates: always include `prisma:migrate` (or `prisma:push`) script.

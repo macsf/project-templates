@@ -1,6 +1,6 @@
 # project-templates
 
-Opinionated project starters. Two templates, one scaffold script.
+Opinionated project starters. Three templates, one scaffold script.
 
 ## Templates
 
@@ -8,17 +8,18 @@ Opinionated project starters. Two templates, one scaffold script.
 |---|---|---|---|
 | `vite` | React 19 + Vite 7 + Express 5 + Tailwind v4 + shadcn/ui | Google OAuth (session-based) | Prisma + MySQL |
 | `nextjs` | Next.js 15 App Router + Tailwind v4 + shadcn/ui | Google OAuth (NextAuth) | Prisma + SQLite or MySQL |
+| `cli` | TypeScript ESM CLI (`bin` → `dist/index.js`) | none | none |
 
-Both ship with:
+Web templates ship with Docker unless you pick **none**. The CLI template is CI only (no Docker).
+
+Shared:
 
 - TypeScript strict mode
 - ESLint flat config + Prettier
 - Husky pre-commit (`lint-staged` + `pnpm typecheck`)
-- Docker (Hostinger **or** Dokploy/Coolify)
 - GitHub Actions CI (+ Hostinger deploy when that scheme is chosen)
 - Dependabot (npm weekly, actions/docker monthly, majors ignored)
 - `AGENTS.md`
-- Dev auth bypass (`DEV_BYPASS_AUTH=true` / NextAuth `DEV`)
 
 ## Prerequisites
 
@@ -47,10 +48,10 @@ bash ~/Developer/personal/project-templates/scaffold.sh ~/projects/new-app
 The script will prompt for:
 
 1. Project name (kebab-case, min 3 chars)
-2. Template: `vite` or `nextjs`
+2. Template: `vite`, `nextjs`, or `cli`
 3. pnpm/Node version (defaults: 10 / 22)
 4. DB provider: SQLite or MySQL (Next.js only)
-5. Deploy scheme: Hostinger or Dokploy/Coolify
+5. Deploy scheme (web only): Hostinger, Dokploy/Coolify, or none
 
 Then it copies the template, substitutes all `{{VARS}}`, wires CI/CD, and runs `git init`.
 
@@ -64,12 +65,12 @@ cp .env.example .env          # vite
 cp .env.local.example .env.local   # nextjs
 
 # Edit env file, then:
-pnpm prisma:migrate            # commit migration files before the first Docker deploy
+pnpm prisma:migrate            # web; commit migration files before the first Docker deploy
 pnpm dev:all    # vite
-pnpm dev        # nextjs
+pnpm dev        # nextjs or cli
 ```
 
-Local container smoke: `docker compose build && docker compose up -d` → http://127.0.0.1:8080
+Local container smoke (Docker schemes): `docker compose build && docker compose up -d` → http://127.0.0.1:8080
 
 ## Deploy schemes
 
@@ -77,6 +78,7 @@ Local container smoke: `docker compose build && docker compose up -d` → http:/
 | --- | --- | --- | --- |
 | **Hostinger** | CI, build/push GHCR, `hostinger/deploy-on-vps@v2` | Pulls `APP_IMAGE`, Traefik labels | no `build:`, ports on `127.0.0.1`, Traefik labels |
 | **Dokploy / Coolify** | CI only | Builds `Dockerfile` from the repo | `build:` + `expose:`, no Traefik labels |
+| **none** | CI only (`library` tier) | You run it (or publish the CLI) | Docker files stripped |
 
 Push to `main` deploys on Hostinger only when a commit subject starts with `release:` or `fix:` (including `fix(scope):`). `workflow_dispatch` always deploys. Details: `docs/DOCKER.md` in the scaffolded project, and [workflow-templates](https://github.com/macsf/workflow-templates).
 
@@ -94,7 +96,7 @@ Hostinger `project-name` must be at least 3 characters. Secrets live in GitHub e
 | `{{DATABASE_URL}}` | Prisma connection string | per provider |
 | `{{APP_PORT}}` | Frontend dev port | 5173 (vite), 3000 (next) |
 | `{{API_PORT}}` | Backend API port (vite only) | 3001 |
-| `{{DEPLOY_SCHEME}}` | `Hostinger` or `Dokploy / Coolify` | chosen at scaffold |
+| `{{DEPLOY_SCHEME}}` | `Hostinger`, `Dokploy / Coolify`, or `CI only` | chosen at scaffold |
 
 ## Structure
 
@@ -103,7 +105,8 @@ project-templates/
 ├── scaffold.sh               # Interactive scaffold script
 ├── templates/
 │   ├── vite/                 # Vite + Express + Prisma template
-│   └── nextjs/               # Next.js App Router + Prisma template
+│   ├── nextjs/               # Next.js App Router + Prisma template
+│   └── cli/                  # TypeScript CLI (from new-cli-project)
 ├── workflow-templates/       # Git submodule (macsf/workflow-templates)
 ├── README.md
 └── AGENTS.md
@@ -113,4 +116,4 @@ project-templates/
 
 Workflows source: [macsf/workflow-templates](https://github.com/macsf/workflow-templates), included as a git submodule at `workflow-templates/`.
 
-The scaffold copies the matching tier (`docker-hostinger` or `docker-compose`) into `.github/`.
+The scaffold copies the matching tier (`docker-hostinger`, `docker-compose`, or `library`) into `.github/`.
