@@ -4,10 +4,10 @@
 
 | Layer | Tech |
 | --- | --- |
-| Frontend | React 19 + Vite 7 + TypeScript |
-| Styling | Tailwind CSS v4 (oklch), shadcn/ui new-york |
-| Backend | Express 5 + TypeScript (tsx, NodeNext) |
-| Database | MySQL via Prisma 6 |
+| Frontend | React + Vite + TypeScript |
+| Styling | Tailwind CSS (oklch), shadcn/ui new-york |
+| Backend | Express + TypeScript (tsx, NodeNext) |
+| Database | MySQL via Prisma |
 | Auth | Google OAuth + HMAC SHA-256 session cookies |
 | Testing | Vitest + jsdom + Testing Library |
 | Package Mgr | pnpm |
