@@ -2,10 +2,6 @@
   "name": "{{PROJECT_NAME}}",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@{{PNPM_VERSION}}",
-  "engines": {
-    "node": ">={{NODE_VERSION}}"
-  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",

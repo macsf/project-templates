@@ -4,10 +4,6 @@
   "sideEffects": false,
   "type": "module",
   "version": "0.1.0",
-  "packageManager": "pnpm@{{PNPM_VERSION}}",
-  "engines": {
-    "node": ">={{NODE_VERSION}}"
-  },
   "scripts": {
     "dev:all": "concurrently -n web,server -c cyan,yellow \"pnpm dev:web\" \"pnpm dev:server\"",
     "dev:web": "vite dev",
