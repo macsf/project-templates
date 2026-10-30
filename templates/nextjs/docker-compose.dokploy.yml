@@ -1,0 +1,60 @@
+# Dokploy / Coolify / generic Compose host
+#
+# The platform builds this file from the repo. Set env vars in the platform
+# Environment tab and routing in the Domains tab (service web, port 8080).
+# No Traefik labels here: the platform generates them.
+#
+# Data: named volume "{{PROJECT_NAME}}-data" → /data (survives redeploys,
+# including Dokploy, which recreates the compose directory on every deploy).
+# Local bind mount: DATA_DIR=./data docker compose up
+#
+# Local: docker compose build && docker compose up -d
+#        (docker-compose.override.yml publishes 127.0.0.1:8080)
+
+name: {{PROJECT_NAME}}
+
+x-app-user: &app-user
+  HOST_UID: ${HOST_UID:-${UID:-0}}
+  HOST_GID: ${HOST_GID:-${GID:-0}}
+
+services:
+  web:
+    image: ${APP_IMAGE:-{{PROJECT_NAME}}:local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    expose:
+      - "8080"
+    environment:
+      <<: *app-user
+      NODE_ENV: production
+      HOSTNAME: "0.0.0.0"
+      PORT: "8080"
+      DATABASE_URL: ${DATABASE_URL:-file:/data/app.db}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:8080}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      ALLOWED_GOOGLE_DOMAIN: ${ALLOWED_GOOGLE_DOMAIN:-}
+      ALLOWED_USERS: ${ALLOWED_USERS:-}
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ${DATA_DIR:-{{PROJECT_NAME}}-data}:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8080/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  {{PROJECT_NAME}}-data:

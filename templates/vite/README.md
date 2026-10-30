@@ -47,7 +47,14 @@ API: http://localhost:{{API_PORT}}
 
 See `.env.example` for all required and optional variables.
 
-## Production deployment
+## Production
 
 The Express server serves the built Vite frontend as static files when `NODE_ENV=production`.
-Use PM2 or your preferred process manager to run `pnpm start`.
+
+Docker only. Two schemes: Hostinger (GHCR + Traefik) or Dokploy/Coolify (platform builds Compose). See [`docs/DOCKER.md`](docs/DOCKER.md).
+
+```bash
+pnpm prisma:migrate    # commit migration files before the first deploy
+docker compose build && docker compose up -d
+curl -s http://127.0.0.1:8080/api/health
+```

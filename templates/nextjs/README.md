@@ -60,3 +60,13 @@ Key variables:
 2. Create an OAuth 2.0 Client ID (Web application)
 3. Add `http://localhost:{{APP_PORT}}/api/auth/callback/google` to Authorized redirect URIs
 4. Copy client ID and secret to `.env.local`
+
+## Production
+
+Docker only. Two schemes: Hostinger (GHCR + Traefik) or Dokploy/Coolify (platform builds Compose). See [`docs/DOCKER.md`](docs/DOCKER.md).
+
+```bash
+pnpm prisma:migrate    # commit migration files before the first deploy
+docker compose build && docker compose up -d
+curl -s http://127.0.0.1:8080/api/health
+```

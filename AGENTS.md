@@ -1,15 +1,30 @@
 # project-templates — Agent Guidelines
 
-## Repo purpose
+Scaffolding library. Two opinionated starters (`templates/vite/`, `templates/nextjs/`) plus `scaffold.sh`. Not a runnable application; do not `pnpm dev` at the root.
 
-Scaffolding library. Contains opinionated project starter templates and a scaffold script.
-Not a runnable application.
+## Commands
+
+```bash
+bash scaffold.sh /path/to/new-project
+```
+
+## Structure
+
+```
+templates/vite/       # React 19 + Vite + Express + Prisma + shadcn/ui
+templates/nextjs/     # Next.js 15 App Router + Prisma + NextAuth + shadcn/ui
+scaffold.sh           # Copies template, substitutes vars, wires CI/CD
+workflow-templates/   # Git submodule (macsf/workflow-templates)
+```
 
 ## Template variable convention
 
-- Format: `{{DOUBLE_BRACES}}` — no spaces inside braces.
-- All template files that contain vars will have them replaced by `scaffold.sh` via `sed`.
-- Never use single braces `{VAR}` — that conflicts with shell and JSX syntax.
+- Format: `{{DOUBLE_BRACES}}`. No spaces inside braces.
+- `scaffold.sh` substitutes with `sed`. Never use single braces `{VAR}` (conflicts with shell and JSX).
+- Leave GitHub / Docker-metadata expressions alone (`${{ github.sha }}`, `{{is_default_branch}}`).
+
+Key vars: `{{PROJECT_NAME}}`, `{{PROJECT_TITLE}}`, `{{PNPM_VERSION}}`, `{{NODE_VERSION}}`,
+`{{DB_PROVIDER}}`, `{{DATABASE_URL}}`, `{{APP_PORT}}`, `{{API_PORT}}`, `{{DEPLOY_SCHEME}}`.
 
 ## File naming
 
@@ -21,12 +36,25 @@ Not a runnable application.
 
 | Folder | Framework | Auth | DB | CI/CD tier |
 |---|---|---|---|---|
-| `vite` | React 19 + Vite + Express | Google OAuth (session cookie) | Prisma + MySQL | fullstack-app |
-| `nextjs` | Next.js 15 App Router | Google OAuth (NextAuth) | Prisma + SQLite or MySQL | fullstack-app |
+| `vite` | React 19 + Vite + Express | Google OAuth (session cookie) | Prisma + MySQL | `docker-hostinger` or `docker-compose` |
+| `nextjs` | Next.js 15 App Router | Google OAuth (NextAuth) | Prisma + SQLite or MySQL | `docker-hostinger` or `docker-compose` |
 
 ## CI/CD source
 
-`scaffold.sh` reads workflows from `workflow-templates/templates/fullstack-app/` (git submodule at https://github.com/macsf/workflow-templates).
+`scaffold.sh` reads workflows from `workflow-templates/templates/<tier>/` (git submodule at https://github.com/macsf/workflow-templates).
+
+Docker schemes:
+
+- **Hostinger:** GHCR image, `hostinger/deploy-on-vps@v2`, Traefik labels, loopback ports. Compose has no `build:` key.
+- **Dokploy / Coolify:** CI only. Platform builds Compose (`build:` + `expose:`, no Traefik labels). SQLite uses a named volume.
+
+Do not add a PM2 / DigitalOcean tarball deploy. That path is retired.
+
+## When editing templates
+
+- Edit files in `templates/vite/` or `templates/nextjs/`. Those are the sources.
+- Keep `{{VARS}}` as-is. `scaffold.sh` substitutes them at project creation time.
+- After editing, copy the template to a scratch dir, run `pnpm install` and `pnpm typecheck`.
 
 ## Adding a template
 
@@ -37,16 +65,25 @@ Not a runnable application.
 
 ## Template content rules
 
-- Every template must include: `CLAUDE.md`, `AGENTS.md`, `README.md`, `.env.example`
-  (or `.env.local.example` for Next.js), `.husky/pre-commit`.
+- Every template must include: `AGENTS.md`, `README.md`, `.env.example`
+  (or `.env.local.example` for Next.js), `.husky/pre-commit`, `Dockerfile`,
+  `docker-compose.hostinger.yml`, `docker-compose.dokploy.yml`, `docs/DOCKER.md`.
 - Every template must have all four package.json scripts: `typecheck`, `lint`, `build`,
-  and a dev start script.
+  and a dev start script. Pin `packageManager` and `engines.node`.
 - Prisma templates: always include `prisma:migrate` (or `prisma:push`) script.
+  Entrypoint runs `prisma migrate deploy`; commit migration files before first deploy.
 - Never commit secrets or `.env` files.
+- Husky pre-commit: `lint-staged` then `pnpm typecheck`.
+- Conventional commits. Hostinger deploys only on `release:` / `fix:` subjects.
 
 ## scaffold.sh conventions
 
 - Bash with `set -euo pipefail`.
 - Use `sed` substitution for vars (same pattern as `workflow-templates/scaffold.sh`).
+- Reads `workflow-templates/templates/docker-hostinger/` or `docker-compose/` for CI/CD.
+- Copies `docker-compose.hostinger.yml` or `docker-compose.dokploy.yml` to `docker-compose.yml`.
+- Runs `git init` + initial commit in the new project dir.
+- Prompts: name, template, pnpm/Node version, DB provider, deploy scheme.
 - Print each written file with `echo "  wrote <path>"`.
 - End with printed next-steps.
+- Project name minimum 3 characters (Hostinger API).

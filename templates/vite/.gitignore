@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+.turbo/
+
+.env
+.env.*
+!.env.example
+
+.pnpm-store/
+.DS_Store
+*.tsbuildinfo
+*.log
+
+coverage/
+playwright-report/
+test-results/

@@ -1,0 +1,6 @@
+# Local only: auto-loaded by `docker compose up`.
+# Dokploy / Coolify deploy docker-compose.yml alone.
+services:
+  web:
+    ports:
+      - "127.0.0.1:8080:8080"

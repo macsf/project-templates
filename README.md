@@ -10,12 +10,15 @@ Opinionated project starters. Two templates, one scaffold script.
 | `nextjs` | Next.js 15 App Router + Tailwind v4 + shadcn/ui | Google OAuth (NextAuth) | Prisma + SQLite or MySQL |
 
 Both ship with:
+
 - TypeScript strict mode
 - ESLint flat config + Prettier
-- Husky pre-commit hooks (lint-staged)
-- GitHub Actions CI + deploy (fullstack blue-green via [workflow-templates](https://github.com/macsf/workflow-templates))
-- `CLAUDE.md` and `AGENTS.md`
-- Dev auth bypass (`DEV_BYPASS_AUTH=true`)
+- Husky pre-commit (`lint-staged` + `pnpm typecheck`)
+- Docker (Hostinger **or** Dokploy/Coolify)
+- GitHub Actions CI (+ Hostinger deploy when that scheme is chosen)
+- Dependabot (npm weekly, actions/docker monthly, majors ignored)
+- `AGENTS.md`
+- Dev auth bypass (`DEV_BYPASS_AUTH=true` / NextAuth `DEV`)
 
 ## Prerequisites
 
@@ -25,26 +28,31 @@ Both ship with:
 
 ## Usage
 
-**Without cloning** (recommended):
+**Other machine** (no local clone). Needs git, pnpm, Node 22+. Do not `curl | bash`; prompts need a TTY.
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/macsf/project-templates/main/install.sh)
+# or with a target dir:
+bash <(curl -fsSL https://raw.githubusercontent.com/macsf/project-templates/main/install.sh) ~/projects/new-app
 ```
 
-**From a local clone:**
+Shallow-clones into a temp dir, runs the scaffold, then deletes the clone. Lives on pushed `main`.
+
+**This machine** (local clone already at `~/Developer/personal/project-templates`):
 
 ```bash
-bash scaffold.sh /path/to/new-project
+bash ~/Developer/personal/project-templates/scaffold.sh ~/projects/new-app
 ```
 
 The script will prompt for:
-1. Project name (kebab-case)
+
+1. Project name (kebab-case, min 3 chars)
 2. Template: `vite` or `nextjs`
 3. pnpm/Node version (defaults: 10 / 22)
 4. DB provider: SQLite or MySQL (Next.js only)
-5. Deploy config: app dir, PM2 name
+5. Deploy scheme: Hostinger or Dokploy/Coolify
 
-Then it copies the template, substitutes all `{{VARS}}`, wires in CI/CD workflows, and runs `git init`.
+Then it copies the template, substitutes all `{{VARS}}`, wires CI/CD, and runs `git init`.
 
 ## After scaffolding
 
@@ -56,13 +64,23 @@ cp .env.example .env          # vite
 cp .env.local.example .env.local   # nextjs
 
 # Edit env file, then:
-pnpm prisma:migrate            # vite (creates DB + tables)
-# or
-pnpm prisma:push               # nextjs dev
-
+pnpm prisma:migrate            # commit migration files before the first Docker deploy
 pnpm dev:all    # vite
 pnpm dev        # nextjs
 ```
+
+Local container smoke: `docker compose build && docker compose up -d` → http://127.0.0.1:8080
+
+## Deploy schemes
+
+| Scheme | What GitHub does | What the host does | Compose shape |
+| --- | --- | --- | --- |
+| **Hostinger** | CI, build/push GHCR, `hostinger/deploy-on-vps@v2` | Pulls `APP_IMAGE`, Traefik labels | no `build:`, ports on `127.0.0.1`, Traefik labels |
+| **Dokploy / Coolify** | CI only | Builds `Dockerfile` from the repo | `build:` + `expose:`, no Traefik labels |
+
+Push to `main` deploys on Hostinger only when a commit subject starts with `release:` or `fix:` (including `fix(scope):`). `workflow_dispatch` always deploys. Details: `docs/DOCKER.md` in the scaffolded project, and [workflow-templates](https://github.com/macsf/workflow-templates).
+
+Hostinger `project-name` must be at least 3 characters. Secrets live in GitHub environment `deploy`.
 
 ## Template variables
 
@@ -76,9 +94,7 @@ pnpm dev        # nextjs
 | `{{DATABASE_URL}}` | Prisma connection string | per provider |
 | `{{APP_PORT}}` | Frontend dev port | 5173 (vite), 3000 (next) |
 | `{{API_PORT}}` | Backend API port (vite only) | 3001 |
-| `{{APP_DIR}}` | Server deploy directory | `/opt/{{PROJECT_NAME}}` |
-| `{{PM2_APP_NAME}}` | PM2 process name | `{{PROJECT_NAME}}` |
-| `{{API_DIR}}` | Backend subdir for workflow | `server` (vite), `.` (nextjs) |
+| `{{DEPLOY_SCHEME}}` | `Hostinger` or `Dokploy / Coolify` | chosen at scaffold |
 
 ## Structure
 
@@ -90,22 +106,11 @@ project-templates/
 │   └── nextjs/               # Next.js App Router + Prisma template
 ├── workflow-templates/       # Git submodule (macsf/workflow-templates)
 ├── README.md
-├── CLAUDE.md
 └── AGENTS.md
 ```
 
 ## CI/CD
 
-Workflows source: [macsf/workflow-templates](https://github.com/macsf/workflow-templates) (`fullstack-app` tier), included as a git submodule at `workflow-templates/`.
-The scaffold script copies and substitutes them into `.github/workflows/`.
+Workflows source: [macsf/workflow-templates](https://github.com/macsf/workflow-templates), included as a git submodule at `workflow-templates/`.
 
-Required GitHub secrets for deploy:
-
-| Secret | Description |
-|---|---|
-| `DO_HOST` | DigitalOcean server IP |
-| `DO_SSH_PORT` | SSH port (default 22) |
-| `DO_SSH_USER` | SSH user (default `deploy`) |
-| `DO_SSH_KEY` | SSH private key (PEM) |
-| `PORT` | App listen port (default 3001) |
-| `VITE_GOOGLE_CLIENT_ID` | Frontend env var at build time (vite template) |
+The scaffold copies the matching tier (`docker-hostinger` or `docker-compose`) into `.github/`.

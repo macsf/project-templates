@@ -1,0 +1,59 @@
+# Hostinger Docker Manager + Traefik
+#
+# - Single `web` service: Express API + Vite dist/ (SPA)
+# - MySQL is external (never run in this Compose file)
+# - Image is built in CI and pushed to GHCR (no `build:` here; Hostinger only pulls)
+# - Publish on 127.0.0.1 only. Traefik uses host networking and reads Docker labels.
+#
+# Local smoke:
+#   docker build -t {{PROJECT_NAME}}:local \
+#     --build-arg VITE_API_BASE_URL=/api \
+#     --build-arg VITE_GOOGLE_CLIENT_ID="$VITE_GOOGLE_CLIENT_ID" .
+#   APP_IMAGE={{PROJECT_NAME}}:local docker compose -f docker-compose.hostinger.yml up
+
+name: {{PROJECT_NAME}}
+
+services:
+  web:
+    image: ${APP_IMAGE:-{{PROJECT_NAME}}:local}
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+      HOST_UID: ${HOST_UID:-0}
+      HOST_GID: ${HOST_GID:-0}
+      DATABASE_URL: ${DATABASE_URL}
+      SESSION_SECRET: ${SESSION_SECRET}
+      FRONTEND_URL: https://${TRAEFIK_HOST:-localhost}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      ALLOWED_EMAILS: ${ALLOWED_EMAILS:-}
+      DEV_BYPASS_AUTH: "false"
+    ports:
+      - "127.0.0.1:${PORT:-8080}:8080"
+    labels:
+      - traefik.enable=${TRAEFIK_ENABLE:-false}
+      - traefik.http.routers.${TRAEFIK_ROUTER:-{{PROJECT_NAME}}}.rule=Host(`${TRAEFIK_HOST:-localhost}`)
+      - traefik.http.routers.${TRAEFIK_ROUTER:-{{PROJECT_NAME}}}.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      - traefik.http.routers.${TRAEFIK_ROUTER:-{{PROJECT_NAME}}}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      - traefik.http.services.${TRAEFIK_ROUTER:-{{PROJECT_NAME}}}.loadbalancer.server.port=8080
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8080/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

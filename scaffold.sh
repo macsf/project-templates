@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATES_DIR="$SCRIPT_DIR/templates"
-WORKFLOWS_DIR="$SCRIPT_DIR/workflow-templates/templates/fullstack-app"
+WORKFLOWS_ROOT="$SCRIPT_DIR/workflow-templates/templates"
 
 # ── Colors ──────────────────────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -42,23 +42,19 @@ prompt() {
 render() {
   local dir="$1"
   shift
-  # $@ = pairs of PLACEHOLDER VALUE
   local find_args=("-type" "f")
 
-  # Build sed expression
   local sed_expr=""
   while [[ $# -ge 2 ]]; do
     local key="$1"
     local val="$2"
     shift 2
-    # Escape / in value for sed
     local escaped_val
     escaped_val=$(printf '%s' "$val" | sed 's|/|\\/|g; s|&|\\&|g')
     sed_expr="${sed_expr}s|${key}|${escaped_val}|g;"
   done
 
   find "$dir" "${find_args[@]}" | while IFS= read -r file; do
-    # Skip binary files
     if file "$file" | grep -q "text"; then
       sed -i.bak "$sed_expr" "$file"
       rm -f "${file}.bak"
@@ -66,9 +62,17 @@ render() {
   done
 }
 
+copy_rendered() {
+  local src="$1"
+  local dest="$2"
+  mkdir -p "$(dirname "$dest")"
+  cp "$src" "$dest"
+  echo "  wrote $dest"
+}
+
 # ── Validate tools ────────────────────────────────────────────────────────────
 
-for cmd in git pnpm sed find cp; do
+for cmd in git pnpm sed find cp file; do
   command -v "$cmd" >/dev/null 2>&1 || error "'$cmd' is required but not installed."
 done
 
@@ -82,8 +86,12 @@ echo ""
 
 # ── Prompts ───────────────────────────────────────────────────────────────────
 
-prompt TARGET_DIR  "Target directory (absolute or relative path)"
-# Resolve to absolute path: resolve existing parent dir + basename
+if [[ $# -ge 1 && -n "${1:-}" ]]; then
+  TARGET_DIR="$1"
+  shift
+else
+  prompt TARGET_DIR  "Target directory (absolute or relative path)"
+fi
 if [[ "$TARGET_DIR" != /* ]]; then
   TARGET_DIR="$PWD/$TARGET_DIR"
 fi
@@ -93,13 +101,14 @@ if [[ -e "$TARGET_DIR" ]]; then
   error "Directory already exists: $TARGET_DIR"
 fi
 
-prompt PROJECT_NAME  "Project name (kebab-case)"
-# Validate kebab-case
+prompt PROJECT_NAME  "Project name (kebab-case, min 3 chars)"
 if ! [[ "$PROJECT_NAME" =~ ^[a-z][a-z0-9-]*$ ]]; then
   error "Project name must be kebab-case (lowercase letters, numbers, hyphens)"
 fi
+if [[ ${#PROJECT_NAME} -lt 3 ]]; then
+  error "Project name must be at least 3 characters (Hostinger rejects shorter names)"
+fi
 
-# Derive title from name: replace hyphens with spaces and title-case
 PROJECT_TITLE=$(echo "$PROJECT_NAME" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}')
 prompt PROJECT_TITLE "Project title" "$PROJECT_TITLE"
 
@@ -120,7 +129,6 @@ echo ""
 prompt PNPM_VERSION  "pnpm version" "10"
 prompt NODE_VERSION  "Node.js version" "22"
 
-# Template-specific prompts
 if [[ "$TEMPLATE" == "vite" ]]; then
   APP_PORT="5173"
   API_PORT="3001"
@@ -159,13 +167,28 @@ else
 fi
 
 echo ""
-APP_DIR_DEFAULT="/opt/${PROJECT_NAME}"
-prompt APP_DIR       "Deployment app dir (for CI/CD)" "$APP_DIR_DEFAULT"
-prompt PM2_APP_NAME  "PM2 app name"                   "$PROJECT_NAME"
-
-# CI/CD workflow
+echo "  Deploy scheme:"
+echo "  1) hostinger  — GHCR image + Hostinger VPS (Traefik labels)"
+echo "  2) docker     — Dokploy / Coolify / generic Compose host"
 echo ""
-if [[ -d "$WORKFLOWS_DIR" ]]; then
+prompt DEPLOY_CHOICE "Deploy scheme" "2"
+
+case "$DEPLOY_CHOICE" in
+  1|hostinger)
+    DEPLOY_SCHEME="hostinger"
+    DEPLOY_SCHEME_LABEL="Hostinger"
+    WORKFLOW_TIER="docker-hostinger"
+    ;;
+  2|docker|dokploy|coolify)
+    DEPLOY_SCHEME="docker-compose"
+    DEPLOY_SCHEME_LABEL="Dokploy / Coolify"
+    WORKFLOW_TIER="docker-compose"
+    ;;
+  *) error "Invalid deploy scheme: $DEPLOY_CHOICE" ;;
+esac
+
+echo ""
+if [[ -d "$WORKFLOWS_ROOT" ]]; then
   read -r -p "$(echo -e "${BOLD}Include CI/CD workflows?${RESET} [Y/n]: ")" INCLUDE_CICD
   INCLUDE_CICD="${INCLUDE_CICD:-Y}"
 else
@@ -184,6 +207,7 @@ echo "  Directory:      $TARGET_DIR"
 echo "  App port:       $APP_PORT"
 [[ -n "$API_PORT" ]] && echo "  API port:       $API_PORT"
 echo "  DB provider:    $DB_PROVIDER"
+echo "  Deploy:         $DEPLOY_SCHEME_LABEL"
 echo "  Node version:   $NODE_VERSION"
 echo "  pnpm version:   $PNPM_VERSION"
 echo ""
@@ -196,8 +220,18 @@ CONFIRM="${CONFIRM:-Y}"
 info "Copying template ${TEMPLATE} → ${TARGET_DIR}"
 cp -r "$TEMPLATES_DIR/$TEMPLATE" "$TARGET_DIR"
 
-# Remove .gitkeep files (they only exist to track empty dirs in git)
-find "$TARGET_DIR" -name ".gitkeep" -delete
+# Keep public/.gitkeep so Docker COPY public/ has a directory in git.
+find "$TARGET_DIR" -path '*/components/ui/.gitkeep' -delete
+
+# Active compose file for the chosen scheme
+if [[ "$DEPLOY_SCHEME" == "hostinger" ]]; then
+  cp "$TARGET_DIR/docker-compose.hostinger.yml" "$TARGET_DIR/docker-compose.yml"
+  rm -f "$TARGET_DIR/docker-compose.override.yml"
+else
+  cp "$TARGET_DIR/docker-compose.dokploy.yml" "$TARGET_DIR/docker-compose.yml"
+fi
+
+chmod +x "$TARGET_DIR/docker/entrypoint.sh"
 
 # ── Render template vars ──────────────────────────────────────────────────────
 
@@ -211,11 +245,8 @@ render "$TARGET_DIR" \
   "{{DATABASE_URL}}"  "$DATABASE_URL" \
   "{{APP_PORT}}"      "$APP_PORT" \
   "{{API_PORT}}"      "$API_PORT" \
-  "{{APP_DIR}}"       "$APP_DIR" \
-  "{{PM2_APP_NAME}}"  "$PM2_APP_NAME" \
-  "{{API_DIR}}"       "$API_DIR"
+  "{{DEPLOY_SCHEME}}" "$DEPLOY_SCHEME_LABEL"
 
-# For SQLite: remove the shadowDatabaseUrl line from Prisma schema (not supported by SQLite)
 if [[ "$DB_PROVIDER" == "sqlite" ]]; then
   SCHEMA_FILE="$TARGET_DIR/prisma/schema.prisma"
   if [[ -f "$SCHEMA_FILE" ]]; then
@@ -227,9 +258,17 @@ fi
 # ── CI/CD workflows ────────────────────────────────────────────────────────────
 
 if [[ "$INCLUDE_CICD" =~ ^[Yy]$ ]]; then
-  info "Copying CI/CD workflows from workflow-templates"
+  info "Copying CI/CD workflows ($WORKFLOW_TIER)"
   mkdir -p "$TARGET_DIR/.github/workflows"
-  cp -r "$WORKFLOWS_DIR/." "$TARGET_DIR/.github/workflows/"
+  copy_rendered "$WORKFLOWS_ROOT/$WORKFLOW_TIER/ci.yml" "$TARGET_DIR/.github/workflows/ci.yml"
+  copy_rendered "$WORKFLOWS_ROOT/dependabot.yml" "$TARGET_DIR/.github/dependabot.yml"
+
+  if [[ "$WORKFLOW_TIER" == "docker-hostinger" ]]; then
+    copy_rendered "$WORKFLOWS_ROOT/docker-hostinger/deploy.yml" "$TARGET_DIR/.github/workflows/deploy.yml"
+    mkdir -p "$TARGET_DIR/.github/scripts"
+    copy_rendered "$WORKFLOWS_ROOT/scripts/deploy-gate.sh" "$TARGET_DIR/.github/scripts/deploy-gate.sh"
+    chmod +x "$TARGET_DIR/.github/scripts/deploy-gate.sh"
+  fi
 
   render "$TARGET_DIR/.github" \
     "{{PROJECT_NAME}}"  "$PROJECT_NAME" \
@@ -240,9 +279,7 @@ if [[ "$INCLUDE_CICD" =~ ^[Yy]$ ]]; then
     "{{DATABASE_URL}}"  "$DATABASE_URL" \
     "{{APP_PORT}}"      "$APP_PORT" \
     "{{API_PORT}}"      "$API_PORT" \
-    "{{APP_DIR}}"       "$APP_DIR" \
-    "{{PM2_APP_NAME}}"  "$PM2_APP_NAME" \
-    "{{API_DIR}}"       "$API_DIR"
+    "{{DEPLOY_SCHEME}}" "$DEPLOY_SCHEME_LABEL"
 fi
 
 # ── Env file ─────────────────────────────────────────────────────────────────
@@ -277,7 +314,7 @@ if [[ "$TEMPLATE" == "vite" ]]; then
   echo "       CREATE DATABASE \`${PROJECT_NAME}\`;"
   echo "       CREATE DATABASE \`${PROJECT_NAME}_shadow\`;"
   echo "  4. pnpm install"
-  echo "  5. pnpm prisma:migrate  # or prisma:migrate:deploy"
+  echo "  5. pnpm prisma:migrate  # commit the migration files"
   echo "  6. pnpm dev:all"
 else
   echo "  1. cd ${REL_DIR}"
@@ -287,11 +324,11 @@ else
     echo "       CREATE DATABASE \`${PROJECT_NAME}\`;"
     echo "       CREATE DATABASE \`${PROJECT_NAME}_shadow\`;"
     echo "  4. pnpm install"
-    echo "  5. pnpm prisma:migrate  # or prisma:push for dev"
+    echo "  5. pnpm prisma:migrate  # or prisma:push for local-only"
     echo "  6. pnpm dev"
   else
     echo "  3. pnpm install"
-    echo "  4. pnpm prisma:push"
+    echo "  4. pnpm prisma:migrate  # commit the migration files before Docker deploy"
     echo "  5. pnpm dev"
   fi
 fi
@@ -303,5 +340,13 @@ if [[ "$TEMPLATE" == "vite" ]]; then
   echo "    (handled by backend — no redirect URI needed for GIS flow)"
 else
   echo "    http://localhost:${APP_PORT}/api/auth/callback/google"
+fi
+
+echo ""
+echo "  Docker: see docs/DOCKER.md"
+if [[ "$DEPLOY_SCHEME" == "hostinger" ]]; then
+  echo "  Hostinger: create GitHub environment 'deploy' (HOSTINGER_*, TRAEFIK_*, app secrets)"
+else
+  echo "  Dokploy/Coolify: point at this repo, compose path docker-compose.yml, port 8080"
 fi
 echo ""
