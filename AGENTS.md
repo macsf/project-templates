@@ -75,7 +75,7 @@ Do not add a PM2 / DigitalOcean tarball deploy. That path is retired.
   `docker-compose.hostinger.yml`, `docker-compose.dokploy.yml`, `docs/DOCKER.md`.
 - CLI template: no Docker, no env file. `bin` → `./dist/index.js`.
 - Every template must have all four package.json scripts: `typecheck`, `lint`, `build`,
-  and a dev start script. Pin `packageManager` and `engines.node`.
+  and a dev start script.
 - Prisma templates: always include `prisma:migrate` (or `prisma:push`) script.
   Entrypoint runs `prisma migrate deploy`; commit migration files before first deploy.
 - Never commit secrets or `.env` files.

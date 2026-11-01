@@ -1,6 +1,5 @@
 # syntax=docker/dockerfile:1
 # Next.js + Prisma. Entrypoint runs `prisma migrate deploy` then `next start`.
-# pnpm version comes from package.json "packageManager".
 
 ARG NODE_VERSION={{NODE_VERSION}}
 

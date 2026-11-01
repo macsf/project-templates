@@ -141,7 +141,7 @@ Access control (see `lib/auth.ts`):
 
 ## Git & deploy workflow
 
-- Package manager is pnpm (version pinned in `packageManager`).
+- Package manager is pnpm.
 - Branch off `main` (`feat/...`, `fix/...`, `chore/...`). Do not commit to `main` directly.
 - Conventional commits (`feat:`, `fix:`, `chore:`, `style:`, `release:`). No co-author lines.
 - Pre-commit (`.husky/pre-commit`) runs `lint-staged` then `pnpm typecheck`. Keep both clean.
