@@ -12,7 +12,15 @@ Fullstack TypeScript app — React (Vite) + Express + Prisma (MySQL).
 
 ## Setup
 
-1. Copy `.env.example` to `.env` and fill in the values.
+1. Copy the split env files, fill them in, and merge:
+
+```bash
+cp .env.vars.example .env.vars
+cp .env.secrets.example .env.secrets
+# fill in real values
+pnpm env:merge   # writes .env (Vite, Express, Compose)
+```
+
 2. Create the MySQL database and run migrations:
 
 ```bash
@@ -42,10 +50,11 @@ API: http://localhost:{{API_PORT}}
 | `pnpm test`              | Run tests (Vitest)                 |
 | `pnpm prisma:migrate`    | Apply migrations (dev)             |
 | `pnpm prisma:generate`   | Regenerate Prisma client           |
+| `pnpm env:merge`         | Merge `.env.vars` + `.env.secrets` into `.env` |
 
 ## Environment variables
 
-See `.env.example` for all required and optional variables.
+GitHub import: `.env.vars.example` (`gh variable set -f`) and `.env.secrets.example` (`gh secret set -f`), environment `deploy`. Local: fill `.env.vars` + `.env.secrets`, then `pnpm env:merge`.
 
 ## Production
 

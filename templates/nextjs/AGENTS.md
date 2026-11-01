@@ -44,6 +44,7 @@ pnpm prisma:migrate   # Run migrations (dev)
 pnpm prisma:push      # Push schema to DB (dev, no migration file)
 pnpm prisma:generate  # Regenerate Prisma client
 pnpm prisma:studio    # Prisma Studio GUI
+pnpm env:merge        # Merge .env.vars + .env.secrets → .env.local and .env
 ```
 
 ## File conventions
@@ -134,7 +135,7 @@ Access control (see `lib/auth.ts`):
 ## Critical rules
 
 - pnpm only. No npm, no yarn. Run all commands from repo root.
-- Never commit `.env` or `.env.local`.
+- Never commit `.env`, `.env.local`, `.env.vars`, or `.env.secrets`.
 - Add routes under `app/` following App Router conventions.
 - Server components fetch data directly; client components use SWR/React Query.
 - Protect routes with `getServerSession(authOptions)`.

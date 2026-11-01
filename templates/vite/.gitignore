@@ -6,6 +6,8 @@ build/
 .env
 .env.*
 !.env.example
+!.env.vars.example
+!.env.secrets.example
 
 .pnpm-store/
 .DS_Store

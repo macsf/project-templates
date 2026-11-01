@@ -53,6 +53,16 @@ Compose **pulls** `APP_IMAGE`. There is no `build:` key. Publish on `127.0.0.1` 
 
 SQLite bind-mount `./data` lands at `/docker/{{PROJECT_NAME}}/data/` on the VPS.
 
+Import from the split env files (fill in, drop blank lines):
+
+```bash
+cp .env.vars.example /tmp/{{PROJECT_NAME}}.vars
+cp .env.secrets.example /tmp/{{PROJECT_NAME}}.secrets
+gh variable set -f /tmp/{{PROJECT_NAME}}.vars --env deploy --repo <owner>/{{PROJECT_NAME}}
+gh secret set -f /tmp/{{PROJECT_NAME}}.secrets --env deploy --repo <owner>/{{PROJECT_NAME}}
+rm /tmp/{{PROJECT_NAME}}.vars /tmp/{{PROJECT_NAME}}.secrets
+```
+
 ### GitHub environment `deploy`
 
 | Kind | Name | Purpose |
@@ -65,15 +75,17 @@ SQLite bind-mount `./data` lands at `/docker/{{PROJECT_NAME}}/data/` on the VPS.
 | Variable | `HOST_UID` / `HOST_GID` | Container user (default 0) |
 | Secret | `DATABASE_URL` | Prisma connection string |
 | Secret | `NEXTAUTH_SECRET` | NextAuth JWT secret |
-| Secret | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth |
-| Variable | `GOOGLE_WORKSPACE_DOMAIN` | Optional login domain restriction |
+| Variable | `GOOGLE_CLIENT_ID` | Google OAuth client id |
+| Secret | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+| Variable | `ALLOWED_GOOGLE_DOMAIN` | Optional login domain restriction |
+| Secret | `ALLOWED_USERS` | Optional email allow list |
 
 ## Dokploy / Coolify / generic Compose
 
 The platform clones the repo and builds `Dockerfile`. GitHub Actions only runs CI.
 
 1. Create a Compose service, compose path `docker-compose.yml`, branch `main`.
-2. Set secrets in the Environment tab (same names as `.env.example`).
+2. Set secrets and variables in the Environment tab (same names as `.env.secrets.example` / `.env.vars.example`).
 3. Domains tab: service `web`, container port `8080`, HTTPS on.
 4. SQLite must use the named volume `{{PROJECT_NAME}}-data`. Do not bind-mount
    `./data` on Dokploy (it recreates the compose directory every deploy).

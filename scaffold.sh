@@ -457,14 +457,12 @@ if [[ "$INCLUDE_CICD" =~ ^[Yy]$ ]]; then
     "{{DEPLOY_SCHEME}}" "$DEPLOY_SCHEME_LABEL"
 fi
 
-# ── Env file ─────────────────────────────────────────────────────────────────
+# ── Env files ────────────────────────────────────────────────────────────────
 
-if [[ "$TEMPLATE" == "vite" ]]; then
-  cp "$TARGET_DIR/.env.example" "$TARGET_DIR/.env"
-  info "Created .env from .env.example"
-elif [[ "$TEMPLATE" == "nextjs" ]]; then
-  cp "$TARGET_DIR/.env.local.example" "$TARGET_DIR/.env.local"
-  info "Created .env.local from .env.local.example"
+if [[ "$TEMPLATE" == "vite" || "$TEMPLATE" == "nextjs" ]]; then
+  cp "$TARGET_DIR/.env.vars.example" "$TARGET_DIR/.env.vars"
+  cp "$TARGET_DIR/.env.secrets.example" "$TARGET_DIR/.env.secrets"
+  info "Created .env.vars and .env.secrets from examples"
 fi
 
 # ── Git init ───────────────────────────────────────────────────────────────────
@@ -508,7 +506,7 @@ if [[ "$TEMPLATE" == "cli" ]]; then
   echo "  3. pnpm dev"
 elif [[ "$TEMPLATE" == "vite" ]]; then
   echo "  1. cd ${REL_DIR}"
-  echo "  2. Fill in secrets in .env"
+  echo "  2. Fill in .env.vars and .env.secrets, then pnpm env:merge"
   echo "  3. Create MySQL databases:"
   echo "       CREATE DATABASE \`${PROJECT_NAME}\`;"
   echo "       CREATE DATABASE \`${PROJECT_NAME}_shadow\`;"
@@ -517,7 +515,7 @@ elif [[ "$TEMPLATE" == "vite" ]]; then
   echo "  6. pnpm dev:all"
 else
   echo "  1. cd ${REL_DIR}"
-  echo "  2. Fill in secrets in .env.local"
+  echo "  2. Fill in .env.vars and .env.secrets, then pnpm env:merge"
   if [[ "$DB_PROVIDER" == "mysql" ]]; then
     echo "  3. Create MySQL database:"
     echo "       CREATE DATABASE \`${PROJECT_NAME}\`;"

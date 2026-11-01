@@ -42,6 +42,7 @@ pnpm format           # Prettier
 pnpm test             # Vitest
 pnpm prisma:migrate   # Run migrations (dev)
 pnpm prisma:generate  # Regenerate Prisma client
+pnpm env:merge        # Merge .env.vars + .env.secrets → .env
 ```
 
 ## File conventions
@@ -106,7 +107,7 @@ When `DEV_BYPASS_AUTH=true`, every request is authenticated as `DEV_USER_EMAIL`.
 ## Critical rules
 
 - pnpm only. No npm, no yarn. Run all commands from repo root.
-- Never commit `.env`.
+- Never commit `.env`, `.env.vars`, or `.env.secrets`.
 - `DEV_BYPASS_AUTH=true` is for local dev only.
 - Add routes in `server/src/routes/`, protect with `requireAuth`.
 - Database: MySQL only. Use `prisma:migrate` (not `db push`) for schema changes.

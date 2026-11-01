@@ -22,7 +22,16 @@ Traefik and GHCR login are shared. Skip if this box already hosts another of the
 
 1. Scaffold with the Hostinger scheme. Project name at least **3 characters** (Hostinger API rejects shorter names).
 2. Push the repo to GitHub.
-3. GitHub **Settings → Environments → New**: name it exactly `deploy`. Put secrets and variables **here**, not at repo level. The workflow uses `environment: deploy`.
+3. GitHub **Settings → Environments → New**: name it exactly `deploy`. Put secrets and variables **here**, not at repo level. The workflow uses `environment: deploy`. Import from the split env files (fill in, drop blank lines):
+
+```bash
+cp .env.vars.example /tmp/<project>.vars
+cp .env.secrets.example /tmp/<project>.secrets
+gh variable set -f /tmp/<project>.vars --env deploy --repo <owner>/<repo>
+gh secret set -f /tmp/<project>.secrets --env deploy --repo <owner>/<repo>
+rm /tmp/<project>.vars /tmp/<project>.secrets
+```
+
 4. **Settings → Deploy keys**: add the VPS public key (read-only is enough).
 5. DNS: `TRAEFIK_HOST` A record → the VPS public IP.
 6. Google Cloud console, production origins:
@@ -51,7 +60,8 @@ Project dir on the VPS is `/docker/<project-name>/`. Next.js SQLite bind-mount i
 | Variable | `PORT` | Host loopback publish port (container still listens on 8080) |
 | Variable | `HOST_UID` / `HOST_GID` | Container user (default `0`) |
 | Secret | `DATABASE_URL` | Prisma URL reachable **from the container**, not `localhost` on your laptop |
-| Secret | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Cloud console |
+| Variable | `GOOGLE_CLIENT_ID` | Google Cloud console (client id) |
+| Secret | `GOOGLE_CLIENT_SECRET` | Google Cloud console (client secret) |
 
 `TRAEFIK_ENABLE` is hardcoded `true` in the workflow.
 
@@ -69,7 +79,7 @@ Project dir on the VPS is `/docker/<project-name>/`. Next.js SQLite bind-mount i
 |---|---|---|
 | Secret | `NEXTAUTH_SECRET` | NextAuth JWT secret |
 | Secret | `ALLOWED_USERS` | Optional email allow list |
-| Variable | `GOOGLE_WORKSPACE_DOMAIN` | Optional domain restriction |
+| Variable | `ALLOWED_GOOGLE_DOMAIN` | Optional domain restriction |
 
 `NEXTAUTH_URL` and `FRONTEND_URL` are set by the workflow from `TRAEFIK_HOST`. Do not put `DEV_BYPASS_AUTH=true` on this environment.
 

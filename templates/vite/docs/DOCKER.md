@@ -54,6 +54,16 @@ Three credentials, easy to mix up:
 Hostinger `project-name` must be at least 3 characters (use `{{PROJECT_NAME}}`).
 Compose **pulls** `APP_IMAGE`. There is no `build:` key. Publish on `127.0.0.1` only.
 
+Import from the split env files (fill in, drop blank lines):
+
+```bash
+cp .env.vars.example /tmp/{{PROJECT_NAME}}.vars
+cp .env.secrets.example /tmp/{{PROJECT_NAME}}.secrets
+gh variable set -f /tmp/{{PROJECT_NAME}}.vars --env deploy --repo <owner>/{{PROJECT_NAME}}
+gh secret set -f /tmp/{{PROJECT_NAME}}.secrets --env deploy --repo <owner>/{{PROJECT_NAME}}
+rm /tmp/{{PROJECT_NAME}}.vars /tmp/{{PROJECT_NAME}}.secrets
+```
+
 ### GitHub environment `deploy`
 
 | Kind | Name | Purpose |
@@ -66,7 +76,8 @@ Compose **pulls** `APP_IMAGE`. There is no `build:` key. Publish on `127.0.0.1` 
 | Variable | `HOST_UID` / `HOST_GID` | Container user (default 0) |
 | Secret | `DATABASE_URL` | Prisma MySQL URL (host reachable from the VPS) |
 | Secret | `SESSION_SECRET` | HMAC session secret (min 32 chars) |
-| Secret | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth |
+| Variable | `GOOGLE_CLIENT_ID` | Google OAuth client id |
+| Secret | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
 | Secret | `ALLOWED_EMAILS` | Comma-separated allow list |
 | Variable | `VITE_GOOGLE_CLIENT_ID` | Baked into the SPA at image build |
 
@@ -77,7 +88,7 @@ Compose **pulls** `APP_IMAGE`. There is no `build:` key. Publish on `127.0.0.1` 
 The platform clones the repo and builds `Dockerfile`. GitHub Actions only runs CI.
 
 1. Create a Compose service, compose path `docker-compose.yml`, branch `main`.
-2. Set secrets in the Environment tab (same names as `.env.example`).
+2. Set secrets and variables in the Environment tab (same names as `.env.secrets.example` / `.env.vars.example`).
 3. Domains tab: service `web`, container port `8080`, HTTPS on.
 4. `DATABASE_URL` must use a hostname reachable from the container (not `localhost`).
 5. Local: `docker compose up --build` (override publishes 8080).

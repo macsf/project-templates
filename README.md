@@ -72,11 +72,8 @@ Do not put `"next": "latest"` in the template `package.json`. Packages have a `l
 ```bash
 cd /path/to/new-project
 pnpm install
-cp .env.example .env          # vite
-# or
-cp .env.local.example .env.local   # nextjs
-
-# Edit env file, then:
+# fill .env.vars and .env.secrets, then:
+pnpm env:merge                 # vite: .env; nextjs: .env.local + .env
 pnpm prisma:migrate            # web; commit migration files before the first Docker deploy
 pnpm dev:all    # vite
 pnpm dev        # nextjs or cli

@@ -71,7 +71,7 @@ Do not add a PM2 / DigitalOcean tarball deploy. That path is retired.
 ## Template content rules
 
 - Every template must include: `AGENTS.md`, `README.md`, `.husky/pre-commit`.
-- Web templates: `.env.example` (or `.env.local.example`), `Dockerfile`,
+- Web templates: `.env.vars.example`, `.env.secrets.example`, pointer `.env.example` (Next.js also `.env.local.example`), `Dockerfile`,
   `docker-compose.hostinger.yml`, `docker-compose.dokploy.yml`, `docs/DOCKER.md`.
 - CLI template: no Docker, no env file. `bin` → `./dist/index.js`.
 - Every template must have all four package.json scripts: `typecheck`, `lint`, `build`,

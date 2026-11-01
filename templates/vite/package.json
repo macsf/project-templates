@@ -24,6 +24,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
+    "env:merge": "node scripts/env-merge.mjs",
     "postinstall": "prisma generate",
     "prepare": "test \"$NODE_ENV\" = \"production\" || husky || exit 0"
   },
