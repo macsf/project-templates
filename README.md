@@ -18,7 +18,7 @@ Shared:
 - ESLint flat config + Prettier
 - Husky pre-commit (`lint-staged` + `pnpm typecheck`)
 - GitHub Actions CI (+ Hostinger deploy when that scheme is chosen)
-- Dependabot (npm weekly, actions/docker monthly, majors ignored)
+- Dependabot (monthly, security + routine groups, majors ignored)
 - `AGENTS.md`
 
 ## Prerequisites
